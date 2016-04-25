@@ -1,0 +1,24 @@
+{
+  "name": "google-hangouts-app-bloks",
+  "description": "Bloks",
+  "main": "",
+  "authors": [
+    "Benjamin Bytheway <bbythewa@adobe.com>"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "bloks"
+  ],
+  "homepage": "https://github.com/benjaminbytheway/google-hangouts-app-bloks",
+  "moduleType": [
+    "amd",
+    "globals"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

@@ -1,1 +1,1 @@
-console.log("Test");
+"use strict";!function(){var i=function(){gapi.hangout.onApiReady.add(function(i){i.isApiReady&&(document.getElementById("showParticipants").style.visibility="visible")})};gadgets.util.registerOnLoadHandler(i)}();

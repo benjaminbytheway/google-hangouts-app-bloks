@@ -13,6 +13,7 @@ var del = require('del');
 var htmlreplace = require('gulp-html-replace');
 var htmlmin = require('gulp-htmlmin');
 var template = require('gulp-template');
+var inlineSource = require('gulp-inline-source');
 
 // constants
 var SRC = './src';
@@ -24,12 +25,11 @@ gulp.task('default', [
     'html',
     'xml'
   ], function() {
-    gutil.log('Starting Default...');
+    //gutil.log('Starting Default...');
 
-
-
-    gutil.log('Finished Default.');
+    //gutil.log('Finished Default.');
   });
+
 
 gulp.task('clean', [],
   function () {
@@ -38,35 +38,42 @@ gulp.task('clean', [],
     ]);
   });
 
+
 gulp.task('js', [
     'clean'
   ],
   function () {
     // set up the browserify instance on a task basis
-    var b = browserify({
-      entries: SRC + '/scripts/main.js',
-      debug: true
-    });
+    // var b = browserify({
+    //   entries: SRC + '/scripts/main.js',
+    //   debug: true
+    // });
 
-    return b.bundle()
-      .pipe(source('main.js'))
-      .pipe(buffer())
-      .pipe(sourcemaps.init({loadMaps: true}))
-      // Add transformation tasks to the pipeline here.
+    // return b.bundle()
+    //   .pipe(source('main.js'))
+    //   .pipe(buffer())
+    //   .pipe(sourcemaps.init({loadMaps: true}))
+    //   // Add transformation tasks to the pipeline here.
+    //   .pipe(uglify())
+    //   .on('error', gutil.log)
+    //   .pipe(sourcemaps.write('./'))
+    //   .pipe(gulp.dest(DIST + '/scripts/'));
+
+    return gulp.src(SRC + '/scripts/**/*')
       .pipe(uglify())
-      .on('error', gutil.log)
-      .pipe(sourcemaps.write('./'))
-      .pipe(gulp.dest(DIST + '/scripts/'));
+      .pipe(gulp.dest(DIST));
   });
+
 
 gulp.task('html', [
     'js'
   ], function () {
     return gulp.src(SRC + '/app.html')
-      // TODO: Add minified JS into the html as inline script
+      .pipe(inlineSource({}))
       .pipe(htmlmin({collapseWhitespace: true}))
       .pipe(gulp.dest(DIST));
   });
+
 
 gulp.task('xml', [
     'html'

@@ -1,17 +1,26 @@
 'use strict';
 
-(function () {
-	var 
-		init = function () {
-			gapi.hangout.onApiReady.add(function(eventObj) {
-	      if (eventObj.isApiReady) {
-	        document.getElementById('showParticipants').style.visibility = 'visible';
-	      }
-	    });
-		};
+require([
+		'game',
+		'player'
+	], function (game, Player) {
 
+		var 
+			initializedPromise = new Promise(function (resolve, reject) {
+				gapi.hangout.onApiReady.add(function(evt) {
+		      if (evt.isApiReady) {
+		        resolve();
+		      }
+		    });
+			});
 
+		//------------------------------------------------------------------------
+    // Initialize listeners
+    //------------------------------------------------------------------------
+    initializedPromise
+    	.then(function () {
+    		// TODO:
+    	});
 
-	gadgets.util.registerOnLoadHandler(init);
-}());
+	});
 	

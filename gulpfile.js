@@ -14,6 +14,7 @@ var htmlreplace = require('gulp-html-replace');
 var htmlmin = require('gulp-htmlmin');
 var template = require('gulp-template');
 var inlineSource = require('gulp-inline-source');
+var requirejsOptimize = require('gulp-requirejs-optimize');
 
 // constants
 var SRC = './src';
@@ -43,25 +44,13 @@ gulp.task('js', [
     'clean'
   ],
   function () {
-    // set up the browserify instance on a task basis
-    // var b = browserify({
-    //   entries: SRC + '/scripts/main.js',
-    //   debug: true
-    // });
-
-    // return b.bundle()
-    //   .pipe(source('main.js'))
-    //   .pipe(buffer())
-    //   .pipe(sourcemaps.init({loadMaps: true}))
-    //   // Add transformation tasks to the pipeline here.
-    //   .pipe(uglify())
-    //   .on('error', gutil.log)
-    //   .pipe(sourcemaps.write('./'))
-    //   .pipe(gulp.dest(DIST + '/scripts/'));
-
-    return gulp.src(SRC + '/scripts/**/*')
-      .pipe(uglify())
+    return gulp.src(SRC + '/scripts/main.js')
+      .pipe(requirejsOptimize())
       .pipe(gulp.dest(DIST));
+
+    // return gulp.src(SRC + '/scripts/**/*')
+    //   .pipe(uglify())
+    //   .pipe(gulp.dest(DIST));
   });
 
 

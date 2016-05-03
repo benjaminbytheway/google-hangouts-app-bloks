@@ -6,20 +6,37 @@ require([
   ], function (game, Player) {
 
     var 
-      initializedPromise = new Promise(function (resolve, reject) {
+      hangoutOnApiReadyPromise = new Promise(function (resolve, reject) {
         gapi.hangout.onApiReady.add(function(evt) {
           if (evt.isApiReady) {
             resolve();
           }
         });
-      });
+      }),
+      initialize = function () {
+        
+      };
 
     //------------------------------------------------------------------------
     // Initialize listeners
     //------------------------------------------------------------------------
-    initializedPromise
+    hangoutOnApiReadyPromise
       .then(function () {
-        // TODO:
+        var state;
+
+        // listener for onStateChanged
+        gapi.hangout.data.onStateChanged.add(function(event) {
+          // TODO:
+          event.addedKeys
+          event.metadata
+          event.removedKeys
+          event.state
+        });
+
+        state = gapi.hangout.data.getState();
+
+        // start the Lobby stage of the game
+        game.startStage(game.stages.LOBBY);
       });
 
   });

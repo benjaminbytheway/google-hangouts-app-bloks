@@ -3,8 +3,10 @@
 define([
     'player'
   ], function (Player) {
+    var game,
+      gameData;
 
-    return {
+    game = {
 
       //------------------------------------------------------------------------
       // Players
@@ -64,14 +66,35 @@ define([
       // Game Stages
       //------------------------------------------------------------------------
 
+      stages: {
+        LOBBY: 1, // waiting for game to start
+        LOADING: 2,
+        PLAY: 3,
+        DETERMINE_WINNER: 4,
+        CONGRATULATIONS: 5
+      },
+
       // The current stage of the game
-      // 1) Lobby (waiting for game to start)
-      currentStage: 1, 
+      currentStage: 0,
+
+      startStage: function (stage) {
+        var self = this;
+
+        self.currentStage = stage;
+
+        if (self.currentStage === self.stages.LOBBY) {
+
+        } else if (self.currentStage === self.stages.LOADING) {
+
+        }
+      },
 
       startGame: function () {
 
       },
 
     };
+
+    return game;
 
   });

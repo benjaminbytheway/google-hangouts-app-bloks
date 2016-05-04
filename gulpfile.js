@@ -22,6 +22,7 @@ var DIST = './dist';
 
 gulp.task('default', [
     'clean',
+    'images',
     'js',
     'html',
     'xml'
@@ -37,6 +38,19 @@ gulp.task('clean', [],
     return del([
       'dist/**/*'
     ]);
+  });
+
+
+gulp.task('images', [
+    'clean'
+  ],
+  function () {
+    return gulp.src(SRC + '/images/*')
+      .pipe(gulp.dest(DIST + '/images/'));
+
+    // return gulp.src(SRC + '/scripts/**/*')
+    //   .pipe(uglify())
+    //   .pipe(gulp.dest(DIST));
   });
 
 

@@ -1,6 +1,6 @@
 'use strict';
 
-define([
+define('player', [
   ], function () {
 
     var 

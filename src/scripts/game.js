@@ -3,9 +3,8 @@
 define('game', [
     'player',
     'events'
-  ], function (Player) {
-    var game,
-      gameData;
+  ], function (Player, events) {
+    var game;
 
     game = {
 
@@ -22,12 +21,18 @@ define('game', [
           player;
 
         // make sure that we only add up to 4 players
-        if (self.players.length < 4) {
-          player = new Player(config);
+        if (config.player && self.players.length < 4) {
+          player = new Player(config.player);
 
           self.setHost(player);
 
           self.players.push(player);
+
+          if (!config.supressEvent) {
+            events.trigger('game.addPlayer', {
+              game: self
+            });
+          }
 
           return true;
         } else {
@@ -37,6 +42,7 @@ define('game', [
 
       removePlayer: function (player) {
         var
+          self = this,
           i;
 
         for (i = self.players.length - 1; i >= 0; i--) {
@@ -49,9 +55,47 @@ define('game', [
         return false;
       },
 
+      reconcilePlayers: function (players) {
+        var
+          self = this,
+          i, l,
+          j, jl,
+          player,
+          player2,
+          found;
+
+        for (i = 0, l = players.length; i < l; i++) {
+          found = false;
+          player = players[i];
+
+          for (j = 0, jl = self.players.length; j < jl; j++) {
+            player2 = self.players[j];
+
+            if (player.id === player2.id) {
+              found = true;
+            }
+          }
+
+          if (!found) {
+            self.addPlayer({
+              player: player,
+              supressEvent: true
+            });
+          }
+
+        }
+      },
+
+      //------------------------------------------------------------------------
+      // Host
+      //------------------------------------------------------------------------
+
       host: null,
 
       setHost: function (player) {
+        var 
+          self = this;
+
         if (
           self.players.length === 0 &&
           player.type === 'human'
@@ -64,10 +108,10 @@ define('game', [
       },
 
       //------------------------------------------------------------------------
-      // Game Stages
+      // Game stages
       //------------------------------------------------------------------------
 
-      stages: {
+      STAGES: {
         LOBBY: 1, // waiting for game to start
         LOADING: 2,
         PLAY: 3,
@@ -79,18 +123,32 @@ define('game', [
       currentStage: 0,
 
       startStage: function (stage) {
-        var self = this;
+        var
+          self = this;
 
         self.currentStage = stage;
 
-        if (self.currentStage === self.stages.LOBBY) {
-
-        } else if (self.currentStage === self.stages.LOADING) {
+        if (self.currentStage === self.STAGES.LOBBY) {
+          // TODO: Change UI
+        } else if (self.currentStage === self.STAGES.LOADING) {
 
         }
+
+        events.trigger('game.startStage', {
+          game: self
+        });
       },
 
-      startGame: function () {
+      start: function (data) {
+        var
+          self = this;
+
+        // start the game for me in the right spot
+        if (data.currentStage === self.STAGES.LOBBY) {
+          // TODO: Change UI
+        } else if (data.currentStage === self.STAGES.LOADING) {
+
+        }
 
       },
 

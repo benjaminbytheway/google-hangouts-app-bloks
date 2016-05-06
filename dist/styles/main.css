@@ -1,0 +1,38 @@
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+/* Stage 1 - Lobby */
+#stage-1 {
+  height: 100%;
+  width: 100%;
+
+  display: table;
+
+  background: #ffffff url("images/blokus-background.jpg") no-repeat center center;
+  background-size: cover;
+}
+
+#stage-1-content {
+  height: 100%;
+  width: 100%;
+
+  display: table-cell;
+
+  vertical-align: middle;
+  text-align: center;
+}
+
+#stage-1-join-container {
+  -moz-box-shadow: 3px 3px 5px 6px #ccc;
+  -webkit-box-shadow: 3px 3px 5px 6px #ccc;
+  box-shadow: 0px 0 10px 10px #fff;
+
+  background-color: #fff;
+
+  width: 50%;
+  
+  margin: auto;
+}

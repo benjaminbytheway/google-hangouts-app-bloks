@@ -1,6 +1,6 @@
 'use strict';
 
-define([
+define('game', [
     'player',
     'events'
   ], function (Player) {

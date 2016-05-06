@@ -1,6 +1,7 @@
 'use strict';
 
 define([
+    'events'
   ], function () {
 
     var 

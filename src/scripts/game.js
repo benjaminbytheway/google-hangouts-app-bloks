@@ -1,7 +1,8 @@
 'use strict';
 
 define([
-    'player'
+    'player',
+    'events'
   ], function (Player) {
     var game,
       gameData;

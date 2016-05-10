@@ -37,6 +37,12 @@ define('player', [
           } else {
             throw new Error('config.name was not provided');
           }
+
+          if (config.image) {
+            self.image = config.image;
+          } else {
+            // TODO: Default image?
+          }
         } else if (self.type === 'computer') {
           // TODO: Determine what to do here...
           if (true) {

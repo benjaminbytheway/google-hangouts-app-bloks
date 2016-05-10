@@ -15,7 +15,9 @@ define('events', [
           if (executeIfFired) {
             try {
               func(triggered[name]);
-            } catch (e) {}
+            } catch (e) {
+              console.error(e);
+            }
           } else {
             return;
           }
@@ -52,7 +54,9 @@ define('events', [
             if (func) {
               try {
                 func(data);
-              } catch (e) {}
+              } catch (e) {
+                console.error(e);
+              }
             }
           }
         }

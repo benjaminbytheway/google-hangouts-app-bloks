@@ -4,9 +4,32 @@ define('game', [
     'player',
     'events'
   ], function (Player, events) {
-    var game;
+    var 
+      game;
 
     game = {
+
+      //------------------------------------------------------------------------
+      // Initialize
+      //------------------------------------------------------------------------
+      initialize: function (data) {
+        var
+          self = this;
+
+        if (data.game.host) {
+          self.host = data.game.host;
+        }
+
+        if (data.game.players) {
+          self.players = data.game.players;
+        }
+
+        if (data.game.currentStage) {
+          self.currentStage = data.game.currentStage;
+        }
+
+        return true;
+      },
 
       //------------------------------------------------------------------------
       // Players
@@ -21,12 +44,23 @@ define('game', [
           player;
 
         // make sure that we only add up to 4 players
-        if (config.player && self.players.length < 4) {
+        if (
+          config.player && 
+          config.player.id &&
+          self.players.length < 4 && 
+          !self.findPlayerById(config.player.id) // make sure the player is added only once
+        ) {
           player = new Player(config.player);
 
-          self.setHost(player);
-
           self.players.push(player);
+
+          if (
+            !self.host
+          ) {
+            self.setHost({
+              player: player
+            });
+          }
 
           if (!config.supressEvent) {
             events.trigger('game.addPlayer', {
@@ -40,22 +74,7 @@ define('game', [
         }
       },
 
-      removePlayer: function (player) {
-        var
-          self = this,
-          i;
-
-        for (i = self.players.length - 1; i >= 0; i--) {
-          if (self.players[i] === player) {
-            self.players.splice(i, 1);
-            return true;
-          }
-        }
-
-        return false;
-      },
-
-      reconcilePlayers: function (players) {
+      updatePlayers: function (players) {
         var
           self = this,
           i, l,
@@ -64,6 +83,7 @@ define('game', [
           player2,
           found;
 
+        // add any that need to be added
         for (i = 0, l = players.length; i < l; i++) {
           found = false;
           player = players[i];
@@ -84,6 +104,81 @@ define('game', [
           }
 
         }
+
+        // remove any that need to be removed
+        for (j = 0, jl = self.players.length; j < jl; j++) {
+          found = false;
+          player2 = self.players[j];
+
+          for (i = 0, l = players.length; i < l; i++) {
+            player = players[i];
+
+            if (player.id === player2.id) {
+              found = true;
+            }
+          }
+
+          if (!found) {
+            self.removePlayer({
+              player: player,
+              supressEvent: true
+            });
+          }
+        }
+
+      },
+
+      removePlayer: function (config) {
+        var
+          self = this,
+          player,
+          i;
+
+        if (!config.player) {
+          return false;
+        }
+
+        // if the person who just quit was the host, reassign the host
+        if (config.player.id === self.host.id) {
+          if (self.players.length > 0) {
+            self.setHost({
+              player: self.players[0]
+            });
+          }
+        }
+
+        for (i = self.players.length - 1; i >= 0; i--) {
+          if (self.players[i] === config.player) {
+            player = self.players.splice(i, 1);
+
+            if (!config.supressEvent) {
+              events.trigger('game.removePlayer', {
+                game: game
+              });
+            }
+
+            return true;
+          }
+        }
+
+        return false;
+      },
+
+      findPlayerById: function (id) {
+        var
+          self = this,
+          i, l,
+          player;
+
+        for (i = 0, l = self.players.length; i < l; i++) {
+          player = self.players[i];
+
+          if (player.id === id) {
+            return player;
+          }
+        }
+
+        return null;
       },
 
       //------------------------------------------------------------------------
@@ -92,15 +187,21 @@ define('game', [
 
       host: null,
 
-      setHost: function (player) {
+      setHost: function (config) {
         var 
           self = this;
 
         if (
-          self.players.length === 0 &&
-          player.type === 'human'
+          config.player.type === 'human'
         ) {
-          self.host = player;
+          self.host = config.player;
+
+          if (!config.supressEvent) {
+            events.trigger('game.setHost', {
+              game: self
+            });
+          }
+
           return true;
         } else {
           return false;

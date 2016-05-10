@@ -65,14 +65,21 @@ gulp.task('styles', [
 gulp.task('js', [
     'clean'
   ],
-  function (done) {
+  function () {
 
     var 
+      lintPromise2 = Promise.resolve(),
       lintPromise = new Promise(function (resolve, reject) {
         gulp.src([
-          SRC + '/scripts/*.js', 
+          SRC + '/scripts/*.js',
           '!' + SRC + '/scripts/require.js'
         ])
+          .on('error', function (err) {
+            reject(err);
+          })
+          .on('end', function () {
+            resolve();
+          })
           .pipe(jshint({
             node: true,
             browser: true,
@@ -83,7 +90,7 @@ gulp.task('js', [
             latedef: true,
             newcap: true,
             noarg: true,
-            quotmark: "single",
+            quotmark: 'single',
             undef: true,
             unused: 'vars',
             strict: true,
@@ -91,34 +98,42 @@ gulp.task('js', [
             smarttabs: true,
             globals: {
               Promise: true,
+              angular: true,
               require: true,
               define: true,
               gapi: true
             }
           }))
-          .pipe(jshint.reporter('default'))
-          .on('end', function () {
-            resolve();
-          })
-          .on('error', function (err) {
-            reject(err);
-          });
+          .pipe(jshint.reporter('default', { verbose: true }))
+          .pipe(jshint.reporter('fail'));
       }),
       mainPromise = new Promise(function (resolve, reject) {
         gulp.src(SRC + '/scripts/main.js')
-          .pipe(requirejsOptimize())
-          .pipe(gulp.dest(DIST + '/scripts/'))
+          .on('error', function (err) {
+            reject(err);
+          })
           .on('end', function () {
             resolve();
-          });
+          })
+          .pipe(requirejsOptimize())
+          .pipe(gulp.dest(DIST + '/scripts/'));
       }),
       requirePromise = new Promise(function (resolve, reject) {
         gulp.src(SRC + '/scripts/require.js')
-          .pipe(gulp.dest(DIST + '/scripts/'))
+          .on('error', function (err) {
+            reject(err);
+          })
           .on('end', function () {
             resolve();
-          });
+          })
+          .pipe(gulp.dest(DIST + '/scripts/'));
       });
+
+    // return Promise.all([
+    //     lintPromise,
+    //     mainPromise,
+    //     requirePromise
+    //   ]);
 
     return lintPromise
       .then(function () {
@@ -126,9 +141,6 @@ gulp.task('js', [
           mainPromise,
           requirePromise
         ]);
-      })
-      .then(function () {
-        done();
       });
 
   });

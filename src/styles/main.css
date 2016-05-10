@@ -26,13 +26,44 @@ html, body {
 }
 
 #stage-1-join-container {
+  width: 50%;
+
   -moz-box-shadow: 3px 3px 5px 6px #ccc;
   -webkit-box-shadow: 3px 3px 5px 6px #ccc;
   box-shadow: 0px 0 10px 10px #fff;
 
   background-color: #fff;
-
-  width: 50%;
   
   margin: auto;
+}
+
+#stage-1-join-table {
+  width: 100%;
+
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.player-container {
+  border: 1px solid #000;
+}
+
+.player-container-table {
+  width: 100%;
+
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  vertical-align: middle;
+  text-align: center;
+}
+
+.player-image {
+  width: 50%;
+
+  border-radius: 96px;
+
+  -moz-box-shadow:    inset 0 0 10px #000000;
+  -webkit-box-shadow: inset 0 0 10px #000000;
+  box-shadow:         inset 0 0 10px #000000;
 }

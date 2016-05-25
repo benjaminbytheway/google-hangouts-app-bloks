@@ -1,6 +1,7 @@
 'use strict';
 
 define('player', [
+    'events'
   ], function () {
 
     var 
@@ -21,14 +22,26 @@ define('player', [
         }
         
         //------------------------------------------------------------------------
-        // participant
+        // id
         // TODO: generisize this for other platforms other than Google+ Hangouts
         //------------------------------------------------------------------------
         if (self.type === 'human') {
-          if (config.participant) {
-            self.participant = config.participant;
+          if (config.id) {
+            self.id = config.id;
           } else {
-            throw new Error('config.participant was not provided');
+            throw new Error('config.id was not provided');
+          }
+
+          if (config.name) {
+            self.name = config.name;
+          } else {
+            throw new Error('config.name was not provided');
+          }
+
+          if (config.image) {
+            self.image = config.image;
+          } else {
+            // TODO: Default image?
           }
         } else if (self.type === 'computer') {
           // TODO: Determine what to do here...
@@ -45,6 +58,9 @@ define('player', [
       proto = Player.prototype;
 
     // TODO: proto methods
+    proto.takeTurn = function () {
+      // done
+    };
 
     return Player;
 

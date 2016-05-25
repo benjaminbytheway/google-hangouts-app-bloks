@@ -6,6 +6,7 @@ var browserify = require('browserify');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var uglify = require('gulp-uglify');
+var jshint = require('gulp-jshint');
 var sourcemaps = require('gulp-sourcemaps');
 var gutil = require('gulp-util');
 var concat = require('gulp-concat');
@@ -23,6 +24,7 @@ var DIST = './dist';
 gulp.task('default', [
     'clean',
     'images',
+    'styles',
     'js',
     'html',
     'xml'
@@ -47,32 +49,112 @@ gulp.task('images', [
   function () {
     return gulp.src(SRC + '/images/*')
       .pipe(gulp.dest(DIST + '/images/'));
-
-    // return gulp.src(SRC + '/scripts/**/*')
-    //   .pipe(uglify())
-    //   .pipe(gulp.dest(DIST));
   });
+
+
+gulp.task('styles', [
+    'clean'
+  ],
+  function () {
+    return gulp.src(SRC + '/styles/*')
+      .pipe(gulp.dest(DIST + '/styles/'));
+  });
+
 
 
 gulp.task('js', [
     'clean'
   ],
   function () {
-    return gulp.src(SRC + '/scripts/main.js')
-      .pipe(requirejsOptimize())
-      .pipe(gulp.dest(DIST));
 
-    // return gulp.src(SRC + '/scripts/**/*')
-    //   .pipe(uglify())
-    //   .pipe(gulp.dest(DIST));
+    var 
+      lintPromise2 = Promise.resolve(),
+      lintPromise = new Promise(function (resolve, reject) {
+        gulp.src([
+          SRC + '/scripts/*.js',
+          '!' + SRC + '/scripts/require.js'
+        ])
+          .on('error', function (err) {
+            reject(err);
+          })
+          .on('end', function () {
+            resolve();
+          })
+          .pipe(jshint({
+            node: true,
+            browser: true,
+            camelcase: true,
+            curly: true,
+            immed: true,
+            indent: 2,
+            latedef: true,
+            newcap: true,
+            noarg: true,
+            quotmark: 'single',
+            undef: true,
+            unused: 'vars',
+            strict: true,
+            trailing: true,
+            smarttabs: true,
+            globals: {
+              Promise: true,
+              angular: true,
+              require: true,
+              define: true,
+              gapi: true
+            }
+          }))
+          .pipe(jshint.reporter('default', { verbose: true }))
+          .pipe(jshint.reporter('fail'));
+      }),
+      mainPromise = new Promise(function (resolve, reject) {
+        gulp.src(SRC + '/scripts/main.js')
+          .on('error', function (err) {
+            reject(err);
+          })
+          .on('end', function () {
+            resolve();
+          })
+          .pipe(requirejsOptimize())
+          .pipe(gulp.dest(DIST + '/scripts/'));
+      }),
+      requirePromise = new Promise(function (resolve, reject) {
+        gulp.src(SRC + '/scripts/require.js')
+          .on('error', function (err) {
+            reject(err);
+          })
+          .on('end', function () {
+            resolve();
+          })
+          .pipe(gulp.dest(DIST + '/scripts/'));
+      });
+
+    // return Promise.all([
+    //     lintPromise,
+    //     mainPromise,
+    //     requirePromise
+    //   ]);
+
+    return lintPromise
+      .then(function () {
+        return Promise.all([
+          mainPromise,
+          requirePromise
+        ]);
+      });
+
   });
 
 
 gulp.task('html', [
+    'images',
+    'styles',
     'js'
   ], function () {
     return gulp.src(SRC + '/app.html')
-      .pipe(inlineSource({}))
+      .pipe(inlineSource({
+        rootpath: DIST,
+      }))
       .pipe(htmlmin({collapseWhitespace: true}))
       .pipe(gulp.dest(DIST));
   });

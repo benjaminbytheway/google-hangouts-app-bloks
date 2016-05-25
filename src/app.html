@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="styles/main.css" inline></link>
 
     <script src="//plus.google.com/hangouts/_/api/v1/hangout.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
     <script src="scripts/require.js" inline></script>
 
   </head>
@@ -18,22 +19,65 @@
 
         <section id="stage-1-join-container">
           
-          <table>
+          <table id="stage-1-join-table">
             <thead></thead>
             <tbody>
               <tr>
-                <td>none</td>
-                <td>none</td>
+                <td id="player1" class="player-container">
+                  <table>
+                    <tr>
+                      <td>
+                        <img id="player1-image" class="player-image" ng-src="{{game.players[0].image}}" alt="">
+                      </td>
+                      <td>
+                        <span id="player1-name">{{game.players[0].name}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td id="player2" class="player-container"><table>
+                    <tr>
+                      <td>
+                        <img id="player2-image" class="player-image" ng-src="{{game.players[1].image}}" alt="">
+                      </td>
+                      <td>
+                        <span id="player2-name">{{game.players[1].name}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
               </tr>
               <tr>
-                <td>none</td>
-                <td>none</td>
+                <td id="player3" class="player-container">
+                  <table>
+                    <tr>
+                      <td>
+                        <img id="player3-image" class="player-image" ng-src="{{game.players[2].image}}" alt="">
+                      </td>
+                      <td>
+                        <span id="player3-name">{{game.players[2].name}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td id="player4" class="player-container">
+                  <table>
+                    <tr>
+                      <td>
+                        <img id="player4-image" class="player-image" ng-src="{{game.players[3].image}}" alt="">
+                      </td>
+                      <td>
+                        <span id="player4-name">{{game.players[3].name}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
               </tr>
             </tbody>
             <tfoot></tfoot>
           </table>
 
-          <button>Join the game!</button>
+          <button id="buttonJoin" ng-click="join();">Join the game!</button>
 
         </section>
 

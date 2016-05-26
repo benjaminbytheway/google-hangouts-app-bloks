@@ -27,10 +27,11 @@
                   <table>
                     <tr>
                       <td>
-                        <img id="player1-image" class="player-image" ng-src="{{game.players[0].image}}" alt="">
+                        <img id="player1-image" class="player-image" ng-src="{{state.players[0].image}}" alt="">
                       </td>
                       <td>
-                        <span id="player1-name">{{game.players[0].name}}</span>
+                        <span id="player1-name">{{state.players[0].name}}</span>
+                        <span ng-if="state.host.id && state.players[0].id === state.host.id">(Host)</span>
                       </td>
                     </tr>
                   </table>
@@ -38,10 +39,11 @@
                 <td id="player2" class="player-container"><table>
                     <tr>
                       <td>
-                        <img id="player2-image" class="player-image" ng-src="{{game.players[1].image}}" alt="">
+                        <img id="player2-image" class="player-image" ng-src="{{state.players[1].image}}" alt="">
                       </td>
                       <td>
-                        <span id="player2-name">{{game.players[1].name}}</span>
+                        <span id="player2-name">{{state.players[1].name}}</span>
+                        <span ng-if="state.host.id && state.players[1].id === state.host.id">(Host)</span>
                       </td>
                     </tr>
                   </table>
@@ -52,10 +54,11 @@
                   <table>
                     <tr>
                       <td>
-                        <img id="player3-image" class="player-image" ng-src="{{game.players[2].image}}" alt="">
+                        <img id="player3-image" class="player-image" ng-src="{{state.players[2].image}}" alt="">
                       </td>
                       <td>
-                        <span id="player3-name">{{game.players[2].name}}</span>
+                        <span id="player3-name">{{state.players[2].name}}</span>
+                        <span ng-if="state.host.id && state.players[2].id === state.host.id">(Host)</span>
                       </td>
                     </tr>
                   </table>
@@ -64,10 +67,11 @@
                   <table>
                     <tr>
                       <td>
-                        <img id="player4-image" class="player-image" ng-src="{{game.players[3].image}}" alt="">
+                        <img id="player4-image" class="player-image" ng-src="{{state.players[3].image}}" alt="">
                       </td>
                       <td>
-                        <span id="player4-name">{{game.players[3].name}}</span>
+                        <span id="player4-name">{{state.players[3].name}}</span>
+                        <span ng-if="state.host.id && state.players[3].id === state.host.id">(Host)</span>
                       </td>
                     </tr>
                   </table>

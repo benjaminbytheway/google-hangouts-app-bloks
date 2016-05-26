@@ -13,7 +13,7 @@
     <script src="OBJLoader.js"></script>
     <script>
       var scene = new THREE.Scene();
-      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+      var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
       var renderer = new THREE.WebGLRenderer();
       renderer.setSize( window.innerWidth, window.innerHeight );
@@ -41,12 +41,15 @@
       // load a resource
       var blok;
 
-      loader.load(  
+      loader.load(
         // resource URL
-        'block-1.obj',
+        'src/images/block-3-b.obj',
         // Function when resource is loaded
         function ( object ) {
           blok = object;
+
+          blok.rotation.x;
+
           scene.add( object );
 
           // render when done loading...
@@ -59,8 +62,8 @@
       function render() {
         requestAnimationFrame( render );
 
-        blok.rotation.x += 0.1;
-        blok.rotation.y += 0.1;
+        // blok.rotation.x += 0.1;
+        // blok.rotation.y += 0.0324;
 
         renderer.render( scene, camera );
       }

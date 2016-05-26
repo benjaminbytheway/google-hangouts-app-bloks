@@ -112,9 +112,10 @@ define('app', [
             value = state[key];
             metadata = event.metadata[key];
 
-            if (key === 'game') {
-              console.log('game updated elsewhere');
+            if (key) {
+              console.log(key + ' updated elsewhere');
               console.log(value);
+              console.log(metadata);
             }
           }
 

@@ -365,6 +365,8 @@ define('app', [
           $rootScope.$apply();
         });
 
+        // TODO: window.unload to remove myself if I am the last human here...
+        
 
         //--------------------------------------------------------------------
         // hook up the UI

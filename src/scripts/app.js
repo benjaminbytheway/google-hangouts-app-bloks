@@ -101,7 +101,7 @@ define('app', [
           state = parseState(event.state);
 
           // If we sent the message, then return
-          // if (state.writerId === $rootScope.me.id) {
+          // if (state.writerId === $rootScope.me.person.id) {
           //   return;
           // } else {
           //   delete state.writerId;
@@ -113,13 +113,16 @@ define('app', [
             metadata = event.metadata[key];
 
             if (key) {
-              console.log(key + ' updated elsewhere');
-              console.log(value);
-              console.log(metadata);
+              // console.log(key + ' updated elsewhere');
+              // console.log(value);
+              // console.log(metadata);
             }
           }
 
           $rootScope.state = state;
+
+          // TODO: DEBUGGING (REMOVE)
+          window.state = state;
 
           $rootScope.$apply();
         });
@@ -135,10 +138,13 @@ define('app', [
           // console.log(oldValue);
 
           // set who is writing
-          // $rootScope.state.writerId = $rootScope.me.id;
+          // $rootScope.state.writerId = $rootScope.me.person.id;
 
           // submit the changes
           gapi.hangout.data.submitDelta(serializeState($rootScope.state));
+
+          // TODO: DEBUGGING (REMOVE)
+          window.state = $rootScope.state;
 
         }, true); // TODO: Figure out a way not to do object equality
 
@@ -251,6 +257,113 @@ define('app', [
 
           return null;
         };
+
+        $rootScope.removePlayer = function (config) {
+          var
+            i,
+            player,
+            players;
+
+          players = $rootScope.state.players;
+
+          if (!config.player) {
+            return false;
+          }
+
+          for (i = players.length - 1; i >= 0; i--) {
+            if (players[i] === config.player) {
+              player = players.splice(i, 1);
+              return true;
+            }
+          }
+
+          return false;
+        };
+
+        gapi.hangout.onParticipantsDisabled.add(function (event) {
+          // event.disabledParticipants
+
+          var 
+            i, l,
+            j,
+            disabledParticipant,
+            player,
+            players,
+            isHostDisabled = false,
+            shouldHandle = false;
+
+          players = $rootScope.state.players;
+
+          // figure out if the host is leaving
+          if ($rootScope.state.host) {
+            for (i = 0, l = event.disabledParticipants.length; i < l; i++) {
+              disabledParticipant = event.disabledParticipants[i];
+
+              // Is the host leaving?
+              if (disabledParticipant.person.id === $rootScope.state.host.id) {
+                isHostDisabled = true;
+                break;
+              }
+
+            }
+          }
+
+          // only handle this if:
+          // a) I am the host or 
+          // b) if the host is disconnecting and I am the first in line to become the host
+          if (isHostDisabled) {
+
+            // loop through and find the first next human to become the host
+            for (i = 0, l = players.length; i < l; i++) {
+              player = players[i];
+
+              if (
+                // if this is me
+                $rootScope.me.person.id === player.id &&
+                // if I am a human
+                player.type === 'human' &&
+                // if I am not the host
+                $rootScope.state.host.id !== player.id
+              ) {
+                // assign myself as the host
+                $rootScope.state.host = player;
+                break;
+              }
+            }
+            
+          }
+
+          // Only handle the removal of the player if you are the host or become the host
+          if (
+            $rootScope.state.host &&
+            $rootScope.state.host.id === $rootScope.me.person.id
+          ) {
+            shouldHandle = true;
+          }
+
+          if (shouldHandle) {
+
+            for (i = 0, l = event.disabledParticipants.length; i < l; i++) {
+              disabledParticipant = event.disabledParticipants[i];
+              
+              for (j = players.length - 1; j >= 0; j--) {
+                player = players[j];
+
+                if (disabledParticipant.person.id === player.id) {
+                  $rootScope.removePlayer({
+                    player: player
+                  });
+                  break;
+                }
+
+              }
+
+            }
+
+          }
+
+          $rootScope.$apply();
+        });
 
 
         //--------------------------------------------------------------------

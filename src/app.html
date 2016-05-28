@@ -12,12 +12,16 @@
 
   </head>
   <body>
-    <section id="stage-1">
+    <section id="stage-1" ng-if="state.game.currentStage === 1">
       <section id="stage-1-content">
 
-        <h1>Bloks</h1>
-
         <section id="stage-1-join-container">
+
+          <h1>Bloks</h1>
+
+          <div ng-show="state.players.length > 1">
+            <span>{{state.players.length}} Player Game</span>
+          </div>
           
           <table id="stage-1-join-table">
             <thead></thead>
@@ -32,6 +36,7 @@
                       <td>
                         <span id="player1-name">{{state.players[0].name}}</span>
                         <span ng-if="state.host.id && state.players[0].id === state.host.id">(Host)</span>
+                        <span ng-if="state.players[0].id === me.person.id">(Me)</span>
                       </td>
                     </tr>
                   </table>
@@ -44,6 +49,7 @@
                       <td>
                         <span id="player2-name">{{state.players[1].name}}</span>
                         <span ng-if="state.host.id && state.players[1].id === state.host.id">(Host)</span>
+                        <span ng-if="state.players[1].id === me.person.id">(Me)</span>
                       </td>
                     </tr>
                   </table>
@@ -59,6 +65,7 @@
                       <td>
                         <span id="player3-name">{{state.players[2].name}}</span>
                         <span ng-if="state.host.id && state.players[2].id === state.host.id">(Host)</span>
+                        <span ng-if="state.players[2].id === me.person.id">(Me)</span>
                       </td>
                     </tr>
                   </table>
@@ -72,6 +79,7 @@
                       <td>
                         <span id="player4-name">{{state.players[3].name}}</span>
                         <span ng-if="state.host.id && state.players[3].id === state.host.id">(Host)</span>
+                        <span ng-if="state.players[3].id === me.person.id">(Me)</span>
                       </td>
                     </tr>
                   </table>
@@ -81,13 +89,78 @@
             <tfoot></tfoot>
           </table>
 
-          <button id="buttonJoin" ng-click="join();">Join the game!</button>
+          <button id="buttonJoin" ng-click="join();" ng-show="!findPlayerById(me.person.id);">Join the game!</button>
+
+          <button id="buttonLeave" ng-click="$root.showLeaveModal = true;" ng-show="findPlayerById(me.person.id);">Leave the game</button>
+
+          <button id="buttonStart" ng-click="start();" ng-show="me.person.id === state.host.id && state.players.length > 1">Start {{state.players.length}} Player Game!</button>
+
+        </section>
+
+      </section>
+    </section>
+
+    <section id="stage-2" ng-if="state.game.currentStage === 2">
+      <section id="stage-2-content">
+        
+        <section id="stage-2-choose-color-container">
+
+          <h1>Pick your color{{ ((players.length === 2) ? 's' : '') }}!</h1>
+
+          <div ng-show="remainingColors()">
+            <span>You still need to choose {{ remainingColors() + ' color' + ((remainingColors() === 2) ? 's' : '') }}</span>
+          </div>
+
+          <div ng-show="displayColors()">
+            <span>You will be {{displayColors()}}</span>
+          </div>
+          
+          <table id="stage-2-choose-color-table">
+            <thead></thead>
+            <tbody>
+              <tr>
+                <td>
+                  <button ng-click="chooseColor('blue');" ng-disabled="!remainingColors() || state.colors.blue;">Blue</button>
+                </td>
+                <td>
+                  <button ng-click="chooseColor('red');" ng-disabled="!remainingColors() || state.colors.red;">Red</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <button ng-click="chooseColor('green');" ng-disabled="!remainingColors() || state.colors.green;">Green</button>
+                </td>
+                <td>
+                  <button ng-click="chooseColor('yellow');" ng-disabled="!remainingColors() || state.colors.yellow;">Yellow</button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot></tfoot>
+          </table>
 
         </section>
 
       </section>
     </section>
     
+    <div id="modal-leave" class="modal" ng-show="showLeaveModal">
+        
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" ng-click="$root.showLeaveModal = false;">x</span>
+          <div class="clear"></div>
+        </div>
+        <div class="modal-body">
+          <p>You sure you want to leave the game?</p>
+        </div>
+        <div class="modal-footer">
+          <button ng-click="leave(); $root.showLeaveModal = false;">Yes</button>
+          <button ng-click="$root.showLeaveModal = false;">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+
     <script src="scripts/main.js" inline></script>
   </body>
 </html>

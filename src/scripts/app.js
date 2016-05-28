@@ -42,7 +42,7 @@ define('app', [
       },
       STAGES = {
         LOBBY: 1, // waiting for game to start
-        LOADING: 2,
+        CHOOSE_COLOR: 2,
         PLAY: 3,
         DETERMINE_WINNER: 4,
         CONGRATULATIONS: 5
@@ -81,6 +81,11 @@ define('app', [
         // players
         if (!$rootScope.state.players) {
           $rootScope.state.players = [];
+        }
+
+        // colors
+        if (!$rootScope.state.colors) {
+          $rootScope.state.colors = {};
         }
         
         //--------------------------------------------------------------------
@@ -280,6 +285,53 @@ define('app', [
           return false;
         };
 
+        $rootScope.showLeaveModal = false;
+
+        $rootScope.leave = function () {
+          var
+            i, l,
+            player,
+            players,
+            isHostDisabled = false;
+
+          players = $rootScope.state.players;
+
+          if (
+            $rootScope.state.host &&
+            $rootScope.state.host.id === $rootScope.me.person.id
+          ) {
+            isHostDisabled = true;
+          }
+
+          if (isHostDisabled) {
+
+            // assign no one as the host
+            $rootScope.state.host = null;
+
+            // loop through and find the first next human to become the host
+            for (i = 0, l = players.length; i < l; i++) {
+              player = players[i];
+
+              if (
+                // if this is not me
+                $rootScope.me.person.id !== player.id &&
+                // if the player is a human
+                player.type === 'human'
+              ) {
+                // assign myself as the host
+                $rootScope.state.host = player;
+                break;
+              }
+            }
+            
+          }
+
+          // remove myself from the game
+          $rootScope.removePlayer({
+            player: $rootScope.findPlayerById($rootScope.me.person.id)
+          });
+        };
+
         gapi.hangout.onParticipantsDisabled.add(function (event) {
           // event.disabledParticipants
 
@@ -366,10 +418,15 @@ define('app', [
         });
 
         // TODO: window.unload to remove myself if I am the last human here...
-        
+
+        // TODO: When two of the same user ID (benjaminbytheway@gmail.com) connect to the hangout, and one of them is joineed and another drops out of the game,
+        // make sure that we don't drop the one that is joined to the game...Or just identify users based on participant ID rather than person ID...so that multiple
+        // can join and drop...
+
+        // TODO: When a player drops, we need to either reassign the color(s) that the user is playing, or assign them to a computer...
 
         //--------------------------------------------------------------------
-        // hook up the UI
+        // Stage 1
         //--------------------------------------------------------------------
         $rootScope.join = function () {
   
@@ -383,6 +440,101 @@ define('app', [
           });
 
         };
+
+        $rootScope.start = function () {
+          $rootScope.state.game.currentStage = STAGES.CHOOSE_COLOR;
+        };
+
+        //--------------------------------------------------------------------
+        // Stage 2
+        //--------------------------------------------------------------------
+
+        $rootScope.chooseColor = function (color) {
+          if (
+            $rootScope.remainingColors() && 
+            !$rootScope.state.colors[color]
+          ) {
+            $rootScope.state.colors[color] = $rootScope.me.person.id;
+          }
+        };
+
+        $rootScope.remainingColors = function () {
+          var
+            id,
+            color,
+            colors,
+            players,
+            remainingColors;
+
+          colors = $rootScope.state.colors;
+          players = $rootScope.state.players;
+
+          // 2 player game
+          if (players.length === 2) {
+            remainingColors = 2;
+
+          // 3 player game or 4 player game
+          } else if (players.length === 3 || players.length === 4) {
+            remainingColors = 1;
+          }
+
+          for (color in colors) {
+            id = colors[color];
+
+            if ($rootScope.me.person.id === id) {
+              remainingColors--;
+            }
+          }
+
+          return remainingColors;
+        };
+
+        $rootScope.getMyColors = function (labels) {
+          var
+            id,
+            color,
+            colors,
+            myColors = [],
+            map = {
+              'blue': 'Blue',
+              'red': 'Red',
+              'green': 'Green',
+              'yellow': 'Yellow'
+            };
+
+          colors = $rootScope.state.colors;
+
+          for (color in colors) {
+            id = colors[color];
+
+            if ($rootScope.me.person.id === id) {
+              if (labels && map[color]) {
+                myColors.push(map[color]);
+              } else {
+                myColors.push(color);
+              }
+            }
+          }
+
+          return myColors;
+        };
+
+        $rootScope.displayColors = function () {
+          var
+            text = '',
+            colors = $rootScope.getMyColors(true);
+
+          if (colors[0]) {
+            text = colors[0];
+
+            if (colors[1]) {
+              text += ' and ' + colors[1];
+            }
+          }
+
+          return text;
+        };
+
 
       }]);
     

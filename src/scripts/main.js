@@ -2,12 +2,8 @@
 
 require([
     'app',
-    'game',
-    'player',
-    'events',
-    'ui',
-    'controllers/game',
-  ], function (app, game, Player, events, ui) {
+    'events'
+  ], function (app, events) {
 
     var 
       hangoutOnApiReadyPromise = new Promise(function (resolve, reject) {

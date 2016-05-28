@@ -28,11 +28,13 @@ html, body {
 #stage-1-join-container, #stage-2-choose-color-container {
   width: 50%;
 
-  -moz-box-shadow: 3px 3px 5px 6px #ccc;
-  -webkit-box-shadow: 3px 3px 5px 6px #ccc;
-  box-shadow: 0px 0 10px 10px #fff;
+  -moz-box-shadow: 0px 0 50px 50px #fff;
+  -webkit-box-shadow: 0px 0 50px 50px #fff;
+  box-shadow: 0px 0 50px 50px #fff;
 
   background-color: #fff;
+
+  border-radius: 50%;
   
   margin: auto;
 }

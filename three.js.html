@@ -11,6 +11,11 @@
   <body>
     <script src="three.js"></script>
     <script src="OBJLoader.js"></script>
+    <div>
+      <button id="view1">View 1</button>
+      <button id="view2">View 2</button>
+      <button id="view3">View 3</button>
+    </div>
     <script>
       var scene = new THREE.Scene();
       var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -43,7 +48,7 @@
 
       loader.load(
         // resource URL
-        'src/images/block-3-b.obj',
+        'src/images/block-1.obj',
         // Function when resource is loaded
         function ( object ) {
           blok = object;
@@ -67,6 +72,42 @@
 
         renderer.render( scene, camera );
       }
+
+      // listeners
+      var view1 = document.getElementById('view1');
+      var view2 = document.getElementById('view2');
+      var view3 = document.getElementById('view3');
+
+      view1.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 0;
+        camera.position.z = 5;
+
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      view2.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 5;
+        camera.position.z = 2;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      view3.addEventListener('click', function (evt) {
+        camera.position.x = 5;
+        camera.position.y = 5;
+        camera.position.z = 2;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      var axisHelper = new THREE.AxisHelper( 5 );
+      scene.add( axisHelper );
+
+      var gridHelper = new THREE.GridHelper( 5, 1 );
+      scene.add( gridHelper );
+
 
     </script>
   </body>

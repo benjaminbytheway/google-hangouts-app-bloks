@@ -426,6 +426,10 @@ define('app', [
         // TODO: When a player drops, we need to either reassign the color(s) that the user is playing, or assign them to a computer...
 
         //--------------------------------------------------------------------
+        // Stages
+        //--------------------------------------------------------------------
+
+        //--------------------------------------------------------------------
         // Stage 1
         //--------------------------------------------------------------------
         $rootScope.join = function () {
@@ -441,8 +445,27 @@ define('app', [
 
         };
 
-        $rootScope.start = function () {
+        $rootScope.begin = function () {
           $rootScope.state.game.currentStage = STAGES.CHOOSE_COLOR;
+        };
+
+        $rootScope.isPlayer = function () {
+          var
+            player,
+            players,
+            i, l;
+
+          players = $rootScope.state.players;
+
+          for (i = 0, l = players.length; i < l; i++) {
+            player = players[i];
+
+            if ($rootScope.me.person.id === player.id) {
+              return true;
+            }
+          }
+
+          return false;
         };
 
         //--------------------------------------------------------------------
@@ -450,51 +473,13 @@ define('app', [
         //--------------------------------------------------------------------
 
         $rootScope.chooseColor = function (color) {
-          if (
-            $rootScope.remainingColors() && 
-            !$rootScope.state.colors[color]
-          ) {
-            $rootScope.state.colors[color] = $rootScope.me.person.id;
-          }
-        };
-
-        $rootScope.remainingColors = function () {
           var
-            id,
-            color,
-            colors,
             players,
-            remainingColors;
-
-          colors = $rootScope.state.colors;
-          players = $rootScope.state.players;
-
-          // 2 player game
-          if (players.length === 2) {
-            remainingColors = 2;
-
-          // 3 player game or 4 player game
-          } else if (players.length === 3 || players.length === 4) {
-            remainingColors = 1;
-          }
-
-          for (color in colors) {
-            id = colors[color];
-
-            if ($rootScope.me.person.id === id) {
-              remainingColors--;
-            }
-          }
-
-          return remainingColors;
-        };
-
-        $rootScope.getMyColors = function (labels) {
-          var
-            id,
-            color,
             colors,
-            myColors = [],
+            random,
+            player,
+            order,
+            i, l,
             map = {
               'blue': 'Blue',
               'red': 'Red',
@@ -503,20 +488,146 @@ define('app', [
             };
 
           colors = $rootScope.state.colors;
+          players = $rootScope.state.players;
+
+          if (
+            $rootScope.myRemainingColors() && 
+            !colors[color]
+          ) {
+            colors[color] = {
+              type: 1,
+              id: $rootScope.me.person.id,
+              label: map[color]
+            };
+          }
+
+          // assign the last color
+          // to everyone
+          if (
+            // if it is a 3 person game
+            players.length === 3 &&
+            // and 3 colors have been assigned
+            Object.keys(colors).length === 3
+          ) {
+
+            // get the last remaining color that hasn't 
+            // been assigned
+            for (color in map) {
+              if (!colors[color]) {
+                break;
+              }
+            }
+
+            order = [];
+
+            // randomly assign each player a position in the
+            // handling of the color
+            for (i = 0, l = players.length; i < l; i++) {
+              player = players[i];
+
+              // loop until we get an empty index
+              do {
+                random = Math.floor(Math.random() * 3);
+              } while (order[random]);
+
+              order[random] = player.id;
+            }
+            
+            // finally add all of that to the colors object
+            colors[color] = {
+              type: 2,
+              id: order[0],
+              order: order,
+              current: 0,
+              label: map[color]
+            };
+
+          }
+        };
+
+        $rootScope.myRemainingColors = function () {
+          var
+            colorAgent,
+            color,
+            colors,
+            players,
+            myRemainingColors = 0;
+
+          colors = $rootScope.state.colors;
+          players = $rootScope.state.players;
+
+          if ($rootScope.isPlayer()) {
+
+            // 2 player game
+            if (players.length === 2) {
+              myRemainingColors = 2;
+
+            // 3 player game or 4 player game
+            } else if (players.length === 3 || players.length === 4) {
+              myRemainingColors = 1;
+            }
+
+            for (color in colors) {
+              colorAgent = colors[color];
+
+              if (
+                colorAgent.type === 1 &&
+                $rootScope.me.person.id === colorAgent.id
+              ) {
+                myRemainingColors--;
+              }
+            }
+
+          }
+
+          return myRemainingColors;
+        };
+
+        $rootScope.getMyColors = function () {
+          var
+            colorAgent,
+            color,
+            colors,
+            myColors = [];
+
+          colors = $rootScope.state.colors;
 
           for (color in colors) {
-            id = colors[color];
+            colorAgent = colors[color];
 
-            if ($rootScope.me.person.id === id) {
-              if (labels && map[color]) {
-                myColors.push(map[color]);
-              } else {
-                myColors.push(color);
-              }
+            if (
+              colorAgent.type === 1 &&
+              $rootScope.me.person.id === colorAgent.id
+            ) {
+              myColors.push(colorAgent);
             }
           }
 
           return myColors;
+        };
+
+        $rootScope.getSharedColor = function () {
+          var
+            colorAgent,
+            color,
+            colors,
+            players;
+
+          players = $rootScope.state.players;
+
+          if (players.length === 3) {
+            colors = $rootScope.state.colors;
+
+            for (color in colors) {
+              colorAgent = colors[color];
+
+              if (colorAgent.type === 2) {
+                return colorAgent;
+              }
+            }
+          }
+            
+          return null;
         };
 
         $rootScope.displayColors = function () {
@@ -524,15 +635,85 @@ define('app', [
             text = '',
             colors = $rootScope.getMyColors(true);
 
-          if (colors[0]) {
-            text = colors[0];
+          if (colors[0] && colors[0].label) {
+            text = colors[0].label;
 
-            if (colors[1]) {
-              text += ' and ' + colors[1];
+            if (colors[1] && colors[1].label) {
+              text += ' and ' + colors[1].label;
             }
           }
 
           return text;
+        };
+
+        $rootScope.displayChoosenColors = function () {
+          return Object.keys($rootScope.state.colors);
+        };
+
+        $rootScope.displaySharedColor = function () {
+          var
+            colorAgent = $rootScope.getSharedColor();
+
+          if (colorAgent && colorAgent.label) {
+            return colorAgent.label;
+          }
+
+          return false;
+        };
+
+        $rootScope.start = function () {
+          $rootScope.state.game.currentStage = STAGES.PLAY;
+
+          $rootScope.play();
+          $rootScope.init();
+        };
+
+        //--------------------------------------------------------------------
+        // Stage 3
+        //--------------------------------------------------------------------
+        $rootScope.play = function () {
+          $rootScope.state.board = [];
+        };
+
+        $rootScope.init = function () {
+          var 
+            container = document.getElementById('canvas-container'),
+            // three
+            scene,
+            camera,
+            renderer
+            // other
+
+            ;
+
+          //------------------------------------------------------------------
+          // scene
+          //------------------------------------------------------------------
+          scene = new THREE.Scene();
+
+          //------------------------------------------------------------------
+          // camera
+          //------------------------------------------------------------------
+          camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+          camera.position.z = 1000;
+
+          //------------------------------------------------------------------
+          // light
+          //------------------------------------------------------------------
+
+
+
+          //------------------------------------------------------------------
+          // listeners
+          //------------------------------------------------------------------
+          // resize if the window gets resized
+          window.addEventListener( 'resize', function () {
+            camera.aspect = container.innerWidth / container.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.innerWidth, container.innerHeight);
+          }, false );
+
+
         };
 
 

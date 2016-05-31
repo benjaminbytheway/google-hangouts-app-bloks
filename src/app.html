@@ -93,7 +93,7 @@
 
           <button id="buttonLeave" ng-click="$root.showLeaveModal = true;" ng-show="findPlayerById(me.person.id);">Leave the game</button>
 
-          <button id="buttonStart" ng-click="start();" ng-show="me.person.id === state.host.id && state.players.length > 1">Start {{state.players.length}} Player Game!</button>
+          <button id="buttonStart" ng-click="begin();" ng-show="me.person.id === state.host.id && state.players.length > 1">Begin {{state.players.length}} Player Game!</button>
 
         </section>
 
@@ -107,12 +107,16 @@
 
           <h1>Pick your color{{ ((players.length === 2) ? 's' : '') }}!</h1>
 
-          <div ng-show="remainingColors()">
-            <span>You still need to choose {{ remainingColors() + ' color' + ((remainingColors() === 2) ? 's' : '') }}</span>
+          <div ng-show="myRemainingColors() && isPlayer()">
+            <span>You still need to choose {{ myRemainingColors() + ' color' + ((myRemainingColors() === 2) ? 's' : '') }}</span>
           </div>
 
-          <div ng-show="displayColors()">
+          <div ng-show="displayColors() && isPlayer()">
             <span>You will be {{displayColors()}}</span>
+          </div>
+
+          <div ng-show="displaySharedColor()">
+            <span>Everyone will share {{displaySharedColor()}}</span>
           </div>
           
           <table id="stage-2-choose-color-table">
@@ -120,27 +124,37 @@
             <tbody>
               <tr>
                 <td>
-                  <button ng-click="chooseColor('blue');" ng-disabled="!remainingColors() || state.colors.blue;">Blue</button>
+                  <button ng-click="chooseColor('blue');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.blue;">Blue</button>
                 </td>
                 <td>
-                  <button ng-click="chooseColor('red');" ng-disabled="!remainingColors() || state.colors.red;">Red</button>
+                  <button ng-click="chooseColor('red');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.red;">Red</button>
                 </td>
               </tr>
               <tr>
                 <td>
-                  <button ng-click="chooseColor('green');" ng-disabled="!remainingColors() || state.colors.green;">Green</button>
+                  <button ng-click="chooseColor('green');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.green;">Green</button>
                 </td>
                 <td>
-                  <button ng-click="chooseColor('yellow');" ng-disabled="!remainingColors() || state.colors.yellow;">Yellow</button>
+                  <button ng-click="chooseColor('yellow');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.yellow;">Yellow</button>
                 </td>
               </tr>
             </tbody>
             <tfoot></tfoot>
           </table>
 
+          <button id="buttonStart" ng-click="start();" ng-show="me.person.id === state.host.id && state.players.length > 1 && displayChoosenColors().length === 4">Start {{state.players.length}} Player Game!</button>
+
         </section>
 
       </section>
+    </section>
+
+    <section id="stage-3" ng-if="state.game.currentStage === 3">
+      
+      <div id="canvas-container">
+        
+      </div>
+
     </section>
     
     <div id="modal-leave" class="modal" ng-show="showLeaveModal">

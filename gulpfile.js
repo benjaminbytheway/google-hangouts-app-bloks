@@ -101,7 +101,8 @@ gulp.task('js', [
               angular: true,
               require: true,
               define: true,
-              gapi: true
+              gapi: true,
+              THREE: true,
             }
           }))
           .pipe(jshint.reporter('default', { verbose: true }))

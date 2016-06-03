@@ -446,6 +446,8 @@ define('app', [
         };
 
         $rootScope.begin = function () {
+          // NOTE: This will only be run by the host
+
           $rootScope.state.game.currentStage = STAGES.CHOOSE_COLOR;
         };
 
@@ -662,6 +664,8 @@ define('app', [
         };
 
         $rootScope.start = function () {
+          // NOTE: This will only be run by the host
+          
           $rootScope.state.game.currentStage = STAGES.PLAY;
 
           $rootScope.play();
@@ -672,6 +676,8 @@ define('app', [
         // Stage 3
         //--------------------------------------------------------------------
         $rootScope.play = function () {
+
+          // initialize the board
           $rootScope.state.board = [];
         };
 
@@ -708,9 +714,14 @@ define('app', [
           //------------------------------------------------------------------
           // resize if the window gets resized
           window.addEventListener( 'resize', function () {
+            
+            // update the camera
             camera.aspect = container.innerWidth / container.innerHeight;
             camera.updateProjectionMatrix();
+
+            // update the renderer
             renderer.setSize(container.innerWidth, container.innerHeight);
+            
           }, false );
 
 

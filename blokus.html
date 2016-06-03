@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blokus</title>
+  <style>
+    html { width: 100%; height: 100%; }
+    body { margin: 0; overflow: hidden; width: 100%; height: 100%; }
+    #canvas-container { width: 100%; height: 100%; }
+    canvas { width: 100%; height: 100%; }
+    #view-1 { position: fixed; top: 10px; left: 10px; }
+    #view-2 { position: fixed; top: 10px; left: 60px; }
+    #view-3 { position: fixed; top: 10px; left: 110px; }
+  </style>
+  <script src="three.js"></script>
+</head>
+  <body>
+    <div id="canvas-container">
+      <button id="view-1">View 1</button>
+      <button id="view-2">View 2</button>
+      <button id="view-3">View 3</button>
+    </div>
+    <script>
+      var
+        w = window,
+        d = document,
+        container = d.getElementById('canvas-container'),
+        // three
+        scene,
+        camera,
+        view1,
+        view2,
+        view3,
+        renderer,
+        directionalLight,
+        ambientLight,
+        raycaster,
+        mouse,
+        // game objects
+        tableMesh,
+        tableGeometry,
+        tableMaterial,
+        boardSquareMesh,
+        boardSquareTemplateGeometry,
+        boardSquareTemplateMaterial,
+        // other
+        i, l,
+        j, jl,
+        hoverables = [],
+        selectables = [],
+        // dimensions
+        WIDTH = container.offsetWidth,
+        HEIGHT = container.offsetHeight,
+        SQUARE_WIDTH = 0.2,
+        SQUARE_HEIGHT = 0.2,
+        BOARD_WIDTH_IN_SQUARES = 20,
+        BOARD_HEIGHT_IN_SQUARES = 20,
+        TABLE_WIDTH = 10,
+        TABLE_HEIGHT = 10;
+
+      //------------------------------------------------------------------
+      // renderer
+      //------------------------------------------------------------------
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(WIDTH, HEIGHT);
+      renderer.setClearColor(0xffffff);
+      renderer.shadowMap.enabled = true;
+
+      //------------------------------------------------------------------
+      // scene
+      //------------------------------------------------------------------
+      scene = new THREE.Scene();
+
+      //------------------------------------------------------------------
+      // camera
+      //------------------------------------------------------------------
+      camera = new THREE.PerspectiveCamera(
+        45, 
+        WIDTH/HEIGHT, 
+        0.1, 
+        1000
+      );
+
+      camera.position.x = 5;
+      camera.position.y = 5;
+      camera.position.z = 5;
+
+      camera.lookAt(new THREE.Vector3(0,0,0));
+
+      // listeners
+      view1 = document.getElementById('view-1');
+      view2 = document.getElementById('view-2');
+      view3 = document.getElementById('view-3');
+
+      view1.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 10;
+        camera.position.z = 0;
+
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      view2.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 4;
+        camera.position.z = 6;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      view3.addEventListener('click', function (evt) {
+        camera.position.x = 5;
+        camera.position.y = 5;
+        camera.position.z = 5;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
+
+      // resize if the window gets resized
+      w.addEventListener('resize', function () {
+
+        WIDTH = container.offsetWidth;
+        HEIGHT = container.offsetHeight;
+        
+        // update the camera
+        camera.aspect = WIDTH / HEIGHT;
+        camera.updateProjectionMatrix();
+
+        // update the renderer
+        renderer.setSize(WIDTH, HEIGHT);
+        
+      }, false);
+
+      //------------------------------------------------------------------
+      // lights
+      //------------------------------------------------------------------
+      directionalLight = new THREE.DirectionalLight(0xffffff);
+      directionalLight.position.set(50, 150, 50);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
+
+      ambientLight = new THREE.AmbientLight(0x505050);
+      scene.add(ambientLight);
+
+      //------------------------------------------------------------------
+      // Table
+      //------------------------------------------------------------------
+      // tableGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, TABLE_HEIGHT);
+      // tableMaterial = new THREE.MeshStandardMaterial({
+      //   color: 0xeeeeee,
+      //   side: THREE.BackSide
+      // });
+      // tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+
+      // tableMesh.position.y = -1;
+
+      // tableMesh.rotation.x = 0.5 * Math.PI;
+
+      // tableMesh.castShadow = false;
+      // tableMesh.receiveShadow = true;
+
+      // scene.add(tableMesh);
+
+      //------------------------------------------------------------------
+      // Board
+      //------------------------------------------------------------------
+      boardSquareTemplateGeometry = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
+
+      for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
+        for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
+          boardSquareTemplateMaterial = new THREE.MeshStandardMaterial({
+            color: 0xfcfcfc,
+            side: THREE.DoubleSide
+          });
+          boardSquareMesh = new THREE.Mesh(boardSquareTemplateGeometry, boardSquareTemplateMaterial);
+
+          boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2);
+          boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2);
+
+          boardSquareMesh.rotation.x = 0.5 * Math.PI;
+
+          boardSquareMesh.castShadow = true;
+          boardSquareMesh.receiveShadow = false;
+
+          hoverables.push(boardSquareMesh);
+
+          scene.add(boardSquareMesh);
+        }
+      }
+
+      //------------------------------------------------------------------
+      // Interaction
+      //------------------------------------------------------------------
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      renderer.domElement.addEventListener( 'mousemove', function (e) {
+        var
+          intersect,
+          intersects;
+
+        e.preventDefault();
+
+        mouse.x = (event.clientX / WIDTH) * 2 - 1;
+        mouse.y = -(event.clientY / HEIGHT) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        intersects = raycaster.intersectObjects(hoverables);
+
+        if (intersects.length > 0) {
+          intersect = intersects[0];
+
+          // TODO: 
+          intersect.object.material.color = new THREE.Color(0xff0000);
+        }
+
+      }, false );
+
+      renderer.domElement.addEventListener( 'mousedown', function (e) {
+        e.preventDefault();
+
+      }, false );
+
+      renderer.domElement.addEventListener( 'mouseup', function (e) {
+        e.preventDefault();
+
+      }, false );
+
+      //------------------------------------------------------------------
+      // Animate and Render
+      //------------------------------------------------------------------
+      function animate() {
+        requestAnimationFrame(animate);
+        render();
+      }
+
+      function render() {
+        renderer.render(scene,camera);
+      }
+
+      container.appendChild(renderer.domElement);
+
+      animate();
+
+    </script>
+  </body>
+</html>

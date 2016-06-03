@@ -22,6 +22,7 @@
 
       var renderer = new THREE.WebGLRenderer();
       renderer.setSize( window.innerWidth, window.innerHeight );
+
       document.body.appendChild( renderer.domElement );
 
       // lights
@@ -105,8 +106,51 @@
       var axisHelper = new THREE.AxisHelper( 5 );
       scene.add( axisHelper );
 
-      var gridHelper = new THREE.GridHelper( 5, 1 );
-      scene.add( gridHelper );
+      // var gridHelper = new THREE.GridHelper( 5, 1 );
+      // scene.add( gridHelper );
+
+      //------------------------------------------------------------------
+      // interactions
+      //------------------------------------------------------------------
+      var mouse = new THREE.Vector2();
+
+      renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+      renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+      renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+      function onDocumentMouseMove( event ) {
+        event.preventDefault();
+        
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+        raycaster.setFromCamera( mouse, camera );
+        
+        if ( SELECTED ) {
+          if ( raycaster.ray.intersectPlane( plane, intersection ) ) {
+            SELECTED.position.copy( intersection.sub( offset ) );
+          }
+          return;
+        }
+
+        var intersects = raycaster.intersectObjects( objects );
+        
+        if ( intersects.length > 0 ) {
+          if ( INTERSECTED != intersects[ 0 ].object ) {
+            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+            INTERSECTED = intersects[ 0 ].object;
+            INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+            plane.setFromNormalAndCoplanarPoint(
+              camera.getWorldDirection( plane.normal ),
+              INTERSECTED.position );
+          }
+          container.style.cursor = 'pointer';
+        } else {
+          if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+          INTERSECTED = null;
+          container.style.cursor = 'auto';
+        }
+      }
 
 
     </script>

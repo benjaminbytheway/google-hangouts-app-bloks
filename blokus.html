@@ -13,6 +13,8 @@
     #view-3 { position: fixed; top: 10px; left: 110px; }
   </style>
   <script src="three.js"></script>
+  <script src="TrackBallControls.js"></script>
+  <script src="OBJLoader.js"></script>
 </head>
   <body>
     <div id="canvas-container">
@@ -21,6 +23,8 @@
       <button id="view-3">View 3</button>
     </div>
     <script>
+      // TODO: TrackBallControlls and how it affects that camera views 1, 2, and 3...
+
       var
         w = window,
         d = document,
@@ -35,24 +39,35 @@
         directionalLight,
         ambientLight,
         raycaster,
+        plane,
+        offset,
+        intersection,
         mouse,
+        controls,
+        loader,
         // game objects
         tableMesh,
         tableGeometry,
         tableMaterial,
         boardSquareMesh,
-        boardSquareTemplateGeometry,
-        boardSquareTemplateMaterial,
+        boardSquareGeometryTemplate,
+        boardSquareMaterial,
+        squareMesh,
+        squareGeometryTemplate,
+        squareMaterial,
         // other
         i, l,
         j, jl,
         hoverables = [],
         selectables = [],
+        intersected,
+        selected,
         // dimensions
         WIDTH = container.offsetWidth,
         HEIGHT = container.offsetHeight,
         SQUARE_WIDTH = 0.2,
         SQUARE_HEIGHT = 0.2,
+        SQUARE_DEPTH = 0.02,
         BOARD_WIDTH_IN_SQUARES = 20,
         BOARD_HEIGHT_IN_SQUARES = 20,
         TABLE_WIDTH = 10,
@@ -88,9 +103,9 @@
       camera.lookAt(new THREE.Vector3(0,0,0));
 
       // listeners
-      view1 = document.getElementById('view-1');
-      view2 = document.getElementById('view-2');
-      view3 = document.getElementById('view-3');
+      view1 = d.getElementById('view-1');
+      view2 = d.getElementById('view-2');
+      view3 = d.getElementById('view-3');
 
       view1.addEventListener('click', function (evt) {
         camera.position.x = 0;
@@ -132,9 +147,21 @@
       }, false);
 
       //------------------------------------------------------------------
+      // controls
+      //------------------------------------------------------------------
+      controls = new THREE.TrackballControls(camera);
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 1.2;
+      controls.panSpeed = 0.3;
+      controls.noZoom = false;
+      controls.noPan = false;
+      controls.staticMoving = false;
+      controls.dynamicDampingFactor = 0.3;
+
+      //------------------------------------------------------------------
       // lights
       //------------------------------------------------------------------
-      directionalLight = new THREE.DirectionalLight(0xffffff);
+      directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
       directionalLight.position.set(50, 150, 50);
       directionalLight.castShadow = true;
       scene.add(directionalLight);
@@ -164,15 +191,15 @@
       //------------------------------------------------------------------
       // Board
       //------------------------------------------------------------------
-      boardSquareTemplateGeometry = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
+      boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
 
       for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
         for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
-          boardSquareTemplateMaterial = new THREE.MeshStandardMaterial({
+          boardSquareMaterial = new THREE.MeshPhongMaterial({
             color: 0xfcfcfc,
             side: THREE.DoubleSide
           });
-          boardSquareMesh = new THREE.Mesh(boardSquareTemplateGeometry, boardSquareTemplateMaterial);
+          boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
 
           boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2);
           boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2);
@@ -189,15 +216,77 @@
       }
 
       //------------------------------------------------------------------
+      // Squares
+      //------------------------------------------------------------------
+      // squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
+      // squareMaterial = new THREE.MeshPhongMaterial({
+      //   color: 0xff0000,
+      //   transparent: true,
+      //   opacity: 0.5,
+      //   shininess: 75,
+      //   side: THREE.DoubleSide
+      // });
+      // squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
+
+      // squareMesh.position.y = 0.1;
+      // squareMesh.position.x = 2.2;
+      // squareMesh.position.z = 0;
+
+      // squareMesh.castShadow = true;
+      // squareMesh.receiveShadow = false;
+
+      // hoverables.push(squareMesh);
+      // selectables.push(squareMesh);
+
+      // scene.add(squareMesh);
+
+      loader = new THREE.OBJLoader();
+      loader.load(
+        // resource URL
+        'src/images/block-1.obj',
+        // Function when resource is loaded
+        function (object) {
+          console.log(object);
+
+          squareMesh = object.children[0];
+          squareMesh.material = new THREE.MeshPhongMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.65,
+            shininess: 75,
+            side: THREE.DoubleSide
+          });
+
+          squareMesh.position.y = 0.1;
+          squareMesh.position.x = 2.2;
+          squareMesh.position.z = 0;
+
+          squareMesh.castShadow = true;
+          squareMesh.receiveShadow = false;
+
+          hoverables.push(squareMesh);
+          selectables.push(squareMesh);
+
+          scene.add(squareMesh);
+        }
+      );
+
+
+      //------------------------------------------------------------------
       // Interaction
       //------------------------------------------------------------------
       raycaster = new THREE.Raycaster();
       mouse = new THREE.Vector2();
+      plane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
+      offset = new THREE.Vector3();
+      intersection = new THREE.Vector3();
 
-      renderer.domElement.addEventListener( 'mousemove', function (e) {
+      function mousemove(e) {
         var
           intersect,
-          intersects;
+          intersects,
+          i, l,
+          hoverable;
 
         e.preventDefault();
 
@@ -206,26 +295,93 @@
 
         raycaster.setFromCamera(mouse, camera);
 
-        intersects = raycaster.intersectObjects(hoverables);
+        if (selected) {
+          
+          // move along the x and z plane
+          if (raycaster.ray.intersectPlane(plane, intersection)) {
+            selected.position.copy(intersection.sub(offset));
+          }
+
+          // highlight those hoverables that are in the same x and z coordinate space
+          for (i = 0, l = hoverables.length; i < l; i++) {
+            hoverable = hoverables[i];
+
+            // reset previous hovers
+            if (hoverable.previousColor) {
+              hoverable.material.color = hoverable.previousColor;
+            }
+
+            // if it is in the same x and z coordinates, change the color
+            if (
+              Math.floor(hoverable.position.x / SQUARE_WIDTH) === Math.floor((intersection.x - offset.x) / SQUARE_WIDTH) && 
+              Math.floor(hoverable.position.z / SQUARE_HEIGHT) === Math.floor((intersection.z - offset.z) / SQUARE_HEIGHT)
+            ) {
+              hoverable.previousColor = hoverable.material.color;
+              hoverable.material.color = new THREE.Color(0xff0000);
+            }
+          }
+
+        } else {
+          intersects = raycaster.intersectObjects(hoverables);
+
+          if (intersects.length > 0) {
+            intersect = intersects[0];
+
+            intersected = intersect.object;
+
+            container.style.cursor = 'pointer';
+
+          } else {
+            intersected = null;
+
+            container.style.cursor = 'auto';
+          }
+        }
+          
+      }
+
+      function mousedown(e) {
+        var
+          intersect,
+          intersects;
+
+        e.preventDefault();
+
+        // NOTE: mouse.x and mouse.y should already be set because it was set above
+
+        raycaster.setFromCamera(mouse, camera);
+
+        intersects = raycaster.intersectObjects(selectables);
 
         if (intersects.length > 0) {
           intersect = intersects[0];
 
-          // TODO: 
-          intersect.object.material.color = new THREE.Color(0xff0000);
+          // disable zoom, pan, etc. while dragging
+          controls.enabled = false;
+
+          selected = intersect.object;
+
+          if (raycaster.ray.intersectPlane(plane, intersection)) {
+            offset.copy(intersection).sub(selected.position);
+          }
         }
 
-      }, false );
+        container.style.cursor = 'move';
+      }
 
-      renderer.domElement.addEventListener( 'mousedown', function (e) {
+      function mouseup(e) {
         e.preventDefault();
 
-      }, false );
+        controls.enabled = true;
 
-      renderer.domElement.addEventListener( 'mouseup', function (e) {
-        e.preventDefault();
+        if (intersected) {
+          selected = null;
+        }
+      }
 
-      }, false );
+      renderer.domElement.addEventListener('mousemove', mousemove, false);
+      renderer.domElement.addEventListener('mousedown', mousedown, false);
+      renderer.domElement.addEventListener('mouseup', mouseup, false);
 
       //------------------------------------------------------------------
       // Animate and Render
@@ -236,6 +392,7 @@
       }
 
       function render() {
+        controls.update();
         renderer.render(scene,camera);
       }
 

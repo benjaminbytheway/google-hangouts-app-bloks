@@ -25,6 +25,8 @@
     <script>
       // TODO: TrackBallControlls and how it affects that camera views 1, 2, and 3...
 
+      'use strict';
+
       var
         w = window,
         d = document,
@@ -52,6 +54,7 @@
         boardSquareMesh,
         boardSquareGeometryTemplate,
         boardSquareMaterial,
+        group,
         squareMesh,
         squareGeometryTemplate,
         squareMaterial,
@@ -216,7 +219,63 @@
       }
 
       //------------------------------------------------------------------
-      // Squares
+      // Blocks
+      //------------------------------------------------------------------
+      var block = {
+          layout: [
+            [0, 1, 1],
+            [1, 1, 0],
+            [0, 1, 0]
+          ],
+          color: 0x00ff00
+        },
+        row,
+        square;
+
+      group = new THREE.Group();
+
+      group.userData.block = block;
+
+      for (i = 0, l = block.layout.length; i < l; i++) {
+        row = block.layout[i];
+
+        for (j = 0, jl = row.length; j < jl; j++) {
+          square = row[j];
+
+          if (square) {
+            squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
+            squareMaterial = new THREE.MeshPhongMaterial({
+              color: block.color,
+              transparent: true,
+              opacity: 0.5,
+              shininess: 75,
+              side: THREE.DoubleSide
+            });
+            squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
+
+            squareMesh.position.x = i * SQUARE_WIDTH;
+            squareMesh.position.z = j * SQUARE_HEIGHT;
+
+            group.add(squareMesh);
+          }
+            
+        }
+      }
+      
+      group.position.y = 0.1;
+      group.position.x = 2.2;
+      group.position.z = 0;
+
+      group.castShadow = true;
+      group.receiveShadow = false;
+
+      hoverables.push(group);
+      selectables.push(group);
+
+      scene.add(group);
+
+      //------------------------------------------------------------------
+      // Square
       //------------------------------------------------------------------
       // squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
       // squareMaterial = new THREE.MeshPhongMaterial({
@@ -240,36 +299,40 @@
 
       // scene.add(squareMesh);
 
-      loader = new THREE.OBJLoader();
-      loader.load(
-        // resource URL
-        'src/images/block-1.obj',
-        // Function when resource is loaded
-        function (object) {
-          console.log(object);
+      //------------------------------------------------------------------
+      // Square with custom mesh
+      //------------------------------------------------------------------
 
-          squareMesh = object.children[0];
-          squareMesh.material = new THREE.MeshPhongMaterial({
-            color: 0xff0000,
-            transparent: true,
-            opacity: 0.65,
-            shininess: 75,
-            side: THREE.DoubleSide
-          });
+      // loader = new THREE.OBJLoader();
+      // loader.load(
+      //   // resource URL
+      //   'src/images/block-1.obj',
+      //   // Function when resource is loaded
+      //   function (object) {
+      //     console.log(object);
 
-          squareMesh.position.y = 0.1;
-          squareMesh.position.x = 2.2;
-          squareMesh.position.z = 0;
+      //     squareMesh = object.children[0];
+      //     squareMesh.material = new THREE.MeshPhongMaterial({
+      //       color: 0xff0000,
+      //       transparent: true,
+      //       opacity: 0.65,
+      //       shininess: 75,
+      //       side: THREE.DoubleSide
+      //     });
 
-          squareMesh.castShadow = true;
-          squareMesh.receiveShadow = false;
+      //     squareMesh.position.y = 0.1;
+      //     squareMesh.position.x = 2.2;
+      //     squareMesh.position.z = 0;
 
-          hoverables.push(squareMesh);
-          selectables.push(squareMesh);
+      //     squareMesh.castShadow = true;
+      //     squareMesh.receiveShadow = false;
 
-          scene.add(squareMesh);
-        }
-      );
+      //     hoverables.push(squareMesh);
+      //     selectables.push(squareMesh);
+
+      //     scene.add(squareMesh);
+      //   }
+      // );
 
 
       //------------------------------------------------------------------
@@ -322,12 +385,16 @@
           }
 
         } else {
-          intersects = raycaster.intersectObjects(hoverables);
+          intersects = raycaster.intersectObjects(hoverables, true);
 
           if (intersects.length > 0) {
             intersect = intersects[0];
 
-            intersected = intersect.object;
+            if (intersect.object.parent) {
+              intersected = intersect.object.parent;
+            } else {
+              intersected = intersect.object;
+            }
 
             container.style.cursor = 'pointer';
 
@@ -351,7 +418,7 @@
 
         raycaster.setFromCamera(mouse, camera);
 
-        intersects = raycaster.intersectObjects(selectables);
+        intersects = raycaster.intersectObjects(selectables, true);
 
         if (intersects.length > 0) {
           intersect = intersects[0];
@@ -359,7 +426,11 @@
           // disable zoom, pan, etc. while dragging
           controls.enabled = false;
 
-          selected = intersect.object;
+          if (intersect.object.parent) {
+            selected = intersect.object.parent;
+          } else {
+            selected = intersect.object;
+          }
 
           if (raycaster.ray.intersectPlane(plane, intersection)) {
             offset.copy(intersection).sub(selected.position);

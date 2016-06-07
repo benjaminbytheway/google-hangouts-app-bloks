@@ -20,5 +20,9 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "dependencies": {
+    "tween.js": "tweenjs#^16.3.4",
+    "three.js": "^0.76.0"
+  }
 }

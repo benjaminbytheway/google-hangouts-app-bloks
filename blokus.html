@@ -40,7 +40,8 @@
         view2,
         view3,
         renderer,
-        directionalLight,
+        directionalLights,
+        directionalLightCount,
         ambientLight,
         raycaster,
         plane,
@@ -56,6 +57,9 @@
         boardSquareMesh,
         boardSquareGeometryTemplate,
         boardSquareMaterial,
+        boardBaseGeometry,
+        boardBaseMaterial,
+        boardBaseMesh,
         group,
         squareMesh,
         squareGeometryTemplate,
@@ -94,9 +98,10 @@
         HEIGHT = container.offsetHeight,
         SQUARE_WIDTH = 0.2,
         SQUARE_HEIGHT = 0.2,
-        SQUARE_DEPTH = 0.02,
+        SQUARE_DEPTH = 0.04,
         BOARD_WIDTH_IN_SQUARES = 20,
         BOARD_HEIGHT_IN_SQUARES = 20,
+        BOARD_BASE_DEPTH = 0.6,
         TABLE_WIDTH = 10,
         TABLE_HEIGHT = 10;
 
@@ -241,14 +246,62 @@
           //------------------------------------------------------------------
           // lights
           //------------------------------------------------------------------
-          directionalLight = new THREE.DirectionalLight(0xffffff, 0.65);
+          directionalLights = [];
 
-          directionalLight.position.x = -50;
-          directionalLight.position.y = 50;
-          directionalLight.position.z = -50;
+          // 1 - from above
+          directionalLightCount = 0;
+          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          directionalLight.castShadow = true;
-          scene.add(directionalLight);
+          directionalLights[directionalLightCount].position.x = -50;
+          directionalLights[directionalLightCount].position.y = 50;
+          directionalLights[directionalLightCount].position.z = -50;
+
+          directionalLights[directionalLightCount].castShadow = true;
+          scene.add(directionalLights[directionalLightCount]);
+
+          // 2 - from above
+          directionalLightCount = 1;
+          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+
+          directionalLights[directionalLightCount].position.x = 50;
+          directionalLights[directionalLightCount].position.y = 50;
+          directionalLights[directionalLightCount].position.z = 50;
+
+          directionalLights[directionalLightCount].castShadow = true;
+          scene.add(directionalLights[directionalLightCount]);
+
+          // 3 - from above
+          directionalLightCount = 2;
+          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+
+          directionalLights[directionalLightCount].position.x = -50;
+          directionalLights[directionalLightCount].position.y = 50;
+          directionalLights[directionalLightCount].position.z = 50;
+
+          directionalLights[directionalLightCount].castShadow = true;
+          scene.add(directionalLights[directionalLightCount]);
+
+          // 4 - from above
+          directionalLightCount = 3;
+          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+
+          directionalLights[directionalLightCount].position.x = 50;
+          directionalLights[directionalLightCount].position.y = 50;
+          directionalLights[directionalLightCount].position.z = -50;
+
+          directionalLights[directionalLightCount].castShadow = true;
+          scene.add(directionalLights[directionalLightCount]);
+
+          // 5 - from below
+          directionalLightCount = 4;
+          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+
+          directionalLights[directionalLightCount].position.x = 0;
+          directionalLights[directionalLightCount].position.y = -50;
+          directionalLights[directionalLightCount].position.z = 0;
+
+          directionalLights[directionalLightCount].castShadow = true;
+          scene.add(directionalLights[directionalLightCount]);
 
           ambientLight = new THREE.AmbientLight(0x505050);
           scene.add(ambientLight);
@@ -289,8 +342,8 @@
               });
               boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
 
-              boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2);
-              boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2);
+              boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + SQUARE_WIDTH / 2;
+              boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + SQUARE_HEIGHT / 2;
 
               // boardSquareMesh.rotation.x = 0.5 * Math.PI;
 
@@ -306,6 +359,21 @@
               scene.add(boardSquareMesh);
             }
           }
+
+          boardBaseGeometry = new THREE.BoxGeometry(
+            (BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH), 
+            BOARD_BASE_DEPTH, 
+            (BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT)
+          );
+          boardBaseMaterial = new THREE.MeshPhongMaterial({
+            color: 0xfcfcfc,
+            shininess: 50,
+            side: THREE.DoubleSide
+          });
+          boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
+          boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2);
+
+          scene.add(boardBaseMesh);
 
           //------------------------------------------------------------------
           // Blocks
@@ -563,6 +631,8 @@
 
               block.rotation.y = block.startRotation.y;
 
+              block.isUpsideDown = false;
+
               block.castShadow = true;
               block.receiveShadow = false;
 
@@ -572,41 +642,6 @@
             }
 
           }
-            
-          //------------------------------------------------------------------
-          // Square with custom mesh
-          //------------------------------------------------------------------
-          // loader = new THREE.OBJLoader();
-          // loader.load(
-          //   // resource URL
-          //   'src/images/block-1.obj',
-          //   // Function when resource is loaded
-          //   function (object) {
-          //     console.log(object);
-
-          //     squareMesh = object.children[0];
-          //     squareMesh.material = new THREE.MeshPhongMaterial({
-          //       color: 0xff0000,
-          //       transparent: true,
-          //       opacity: 0.65,
-          //       shininess: 75,
-          //       side: THREE.DoubleSide
-          //     });
-
-          //     squareMesh.position.y = 0.1;
-          //     squareMesh.position.x = 2.2;
-          //     squareMesh.position.z = 0;
-
-          //     squareMesh.castShadow = true;
-          //     squareMesh.receiveShadow = false;
-
-          //     hoverables.push(squareMesh);
-          //     selectables.push(squareMesh);
-
-          //     scene.add(squareMesh);
-          //   }
-          // );
-
 
           //------------------------------------------------------------------
           // Interaction
@@ -661,6 +696,10 @@
                   hintBlock = selectedBlock.clone();
 
                   hintBlock.position.copy(boardSquareMeshHovered.position);
+
+                  if (selectedBlock.isUpsideDown) {
+                    hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
+                  }
 
                   scene.add(hintBlock);
                 }
@@ -739,73 +778,87 @@
             var
               xRotation,
               zRotation,
-              yRotation;
+              yRotation,
+              blockReference;
 
             e.preventDefault();
 
             if (selectedBlock && !rotationTween) {
 
+              // maintain a referenced to the block
+              // in case in the middle of the tween the
+              // selectedBlock gets dereferenced by letting
+              // go of the mousedown
+              blockReference = selectedBlock;
+
               // left
               if (e.keyCode === 37) {
 
-                yRotation = selectedBlock.rotation.y;
+                yRotation = blockReference.rotation.y;
 
-                rotationTween = new TWEEN.Tween(selectedBlock.rotation)
-                  .easing(TWEEN.Easing.Exponential.Out)
+                rotationTween = new TWEEN.Tween(blockReference.rotation)
                   .to({y: yRotation + Math.PI/2}, 200)
+                  .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
 
                     // TODO: Update the layout of the group
+                    blockReference = null;
                   })
                   .start();
 
               // up
               } else if (e.keyCode === 38) {
 
-                xRotation = selectedBlock.rotation.x;
+                xRotation = blockReference.rotation.x;
 
-                rotationTween = new TWEEN.Tween(selectedBlock.rotation)
-                  .easing(TWEEN.Easing.Exponential.Out)
+                rotationTween = new TWEEN.Tween(blockReference.rotation)
                   .to({x: xRotation + Math.PI}, 200)
+                  .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
 
+                    blockReference.isUpsideDown = !blockReference.isUpsideDown;
+
                     // TODO: Update the layout of the group
+                    blockReference = null;
                   })
                   .start();
 
               // right
               } else if (e.keyCode === 39) {
 
-                yRotation = selectedBlock.rotation.y;
+                yRotation = blockReference.rotation.y;
 
-                rotationTween = new TWEEN.Tween(selectedBlock.rotation)
-                  .easing(TWEEN.Easing.Exponential.Out)
+                rotationTween = new TWEEN.Tween(blockReference.rotation)
                   .to({y: yRotation - Math.PI/2}, 200)
+                  .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
 
                     // TODO: Update the layout of the group
+                    blockReference = null;
                   })
                   .start();
 
               // down
               } else if (e.keyCode === 40) {
 
-                zRotation = selectedBlock.rotation.z;
+                xRotation = blockReference.rotation.x;
 
-                rotationTween = new TWEEN.Tween(selectedBlock.rotation)
+                rotationTween = new TWEEN.Tween(blockReference.rotation)
+                  .to({x: xRotation - Math.PI}, 200)
                   .easing(TWEEN.Easing.Exponential.Out)
-                  .to({z: zRotation - Math.PI}, 200)
                   .onComplete(function () {
                     rotationTween = null;
 
+                    blockReference.isUpsideDown = !blockReference.isUpsideDown;
+
                     // TODO: Update the layout of the group
+                    blockReference = null;
                   })
                   .start();
               }
-
               
             }
 

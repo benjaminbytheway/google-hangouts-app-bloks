@@ -66,6 +66,7 @@
         squareMaterial,
         // tweens
         rotationTween,
+        dropTween,
         // other
         i, l,
         j, jl,
@@ -77,6 +78,7 @@
         intersected,
         selectedSquare,
         selectedBlock,
+        xIndex, zIndex,
         color,
         colorAgent,
         colors = { // TODO: Replace with $rootScope.colors
@@ -93,6 +95,176 @@
             hex: 0xff0000
           }
         },
+        blockDefinitions = [ // TODO: Replace with $rootScope.blockDefinitions possibly?
+          //---------------------
+          // 5 pieces
+          //---------------------
+          {
+            startPosition: new THREE.Vector3(2.2, 0.1, 1.5),
+            squareCount: 5,
+            layout: [
+              [1,1,1,1,1]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(2.6, 0.1, 1.5),
+            squareCount: 5,
+            layout: [
+              [1,1,1,1],
+              [1,0,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.1, 0.1, 1.5),
+            squareCount: 5,
+            layout: [
+              [1,1,1,1],
+              [0,1,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.6, 0.1, 1.5),
+            squareCount: 5,
+            layout: [
+              [0,1,1,1],
+              [1,1,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(2.4, 0.1, 0.6),
+            squareCount: 5,
+            layout: [
+              [1,1,1],
+              [1,0,0],
+              [1,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.1, 0.1, 0.6),
+            squareCount: 5,
+            layout: [
+              [0,1,1],
+              [1,1,0],
+              [1,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.8, 0.1, 0.6),
+            squareCount: 5,
+            layout: [
+              [0,1,1],
+              [0,1,0],
+              [1,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(2.4, 0.1, -0.1),
+            squareCount: 5,
+            layout: [
+              [1,1,1],
+              [0,1,0],
+              [0,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.1, 0.1, -0.1),
+            squareCount: 5,
+            layout: [
+              [0,1,1],
+              [1,1,0],
+              [0,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.8, 0.1, -0.1),
+            squareCount: 5,
+            layout: [
+              [0,1,0],
+              [1,1,1],
+              [0,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(4.1, 0.1, 1.5),
+            squareCount: 5,
+            layout: [
+              [1,1,1],
+              [1,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(4.4, 0.1, 0.6),
+            squareCount: 5,
+            layout: [
+              [1,1,1],
+              [1,0,1]
+            ]
+          },
+          //---------------------
+          // 4 pieces
+          //---------------------
+          {
+            startPosition: new THREE.Vector3(2.2, 0.1, -0.9),
+            squareCount: 4,
+            layout: [
+              [1,1,1,1]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(2.6, 0.1, -0.9),
+            squareCount: 4,
+            layout: [
+              [1,1,1],
+              [1,0,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.1, 0.1, -0.9),
+            squareCount: 4,
+            layout: [
+              [1,1,1],
+              [0,1,0]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(3.6, 0.1, -0.9),
+            squareCount: 4,
+            layout: [
+              [1,1,0],
+              [0,1,1]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(4.1, 0.1, -0.9),
+            squareCount: 4,
+            layout: [
+              [1,1],
+              [1,1]
+            ]
+          },
+          //---------------------
+          // 3 pieces
+          //---------------------
+          {
+            startPosition: new THREE.Vector3(2.2, 0.1, -1.7),
+            squareCount: 3,
+            layout: [
+              [1,1,1]
+            ]
+          }, {
+            startPosition: new THREE.Vector3(2.6, 0.1, -1.7),
+            squareCount: 3,
+            layout: [
+              [1,1],
+              [1,0]
+            ]
+          },
+          //---------------------
+          // 2 pieces
+          //---------------------
+          {
+            startPosition: new THREE.Vector3(3.0, 0.1, -1.7),
+            squareCount: 2,
+            layout: [
+              [1,1]
+            ]
+          },
+          //---------------------
+          // 1 pieces
+          //---------------------
+          {
+            startPosition: new THREE.Vector3(3.3, 0.1, -1.7),
+            squareCount: 1,
+            layout: [
+              [1]
+            ]
+          }
+        ],
         // dimensions
         WIDTH = container.offsetWidth,
         HEIGHT = container.offsetHeight,
@@ -371,7 +543,7 @@
             side: THREE.DoubleSide
           });
           boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
-          boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2);
+          boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2) - 0.0001;
 
           scene.add(boardBaseMesh);
 
@@ -379,178 +551,10 @@
           // Blocks
           //------------------------------------------------------------------
           var 
-            blockDefinitions = [
-              //---------------------
-              // 5 pieces
-              //---------------------
-              {
-                startPosition: new THREE.Vector3(2.2, 0.1, 1.1),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1,1]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.5, 0.1, 1.1),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1],
-                  [1,0,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.0, 0.1, 1.1),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1],
-                  [0,1,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.5, 0.1, 1.1),
-                squareCount: 5,
-                layout: [
-                  [0,1,1,1],
-                  [1,1,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.2, 0.1, 0.4),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,0,0],
-                  [1,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.9, 0.1, 0.4),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [1,1,0],
-                  [1,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.6, 0.1, 0.4),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [0,1,0],
-                  [1,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.2, 0.1, -0.3),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [0,1,0],
-                  [0,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.9, 0.1, -0.3),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [1,1,0],
-                  [0,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.6, 0.1, -0.3),
-                squareCount: 5,
-                layout: [
-                  [0,1,0],
-                  [1,1,1],
-                  [0,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(4.0, 0.1, 1.3),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(4.3, 0.1, 0.4),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,0,1]
-                ]
-              },
-              //---------------------
-              // 4 pieces
-              //---------------------
-              {
-                startPosition: new THREE.Vector3(2.2, 0.1, -1.2),
-                squareCount: 4,
-                layout: [
-                  [1,1,1,1]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.5, 0.1, -1.2),
-                squareCount: 4,
-                layout: [
-                  [1,1,1],
-                  [1,0,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.0, 0.1, -1.2),
-                squareCount: 4,
-                layout: [
-                  [1,1,1],
-                  [0,1,0]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(3.5, 0.1, -1.2),
-                squareCount: 4,
-                layout: [
-                  [1,1,0],
-                  [0,1,1]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(4.0, 0.1, -1.2),
-                squareCount: 4,
-                layout: [
-                  [1,1],
-                  [1,1]
-                ]
-              },
-              //---------------------
-              // 3 pieces
-              //---------------------
-              {
-                startPosition: new THREE.Vector3(2.2, 0.1, -1.9),
-                squareCount: 3,
-                layout: [
-                  [1,1,1]
-                ]
-              }, {
-                startPosition: new THREE.Vector3(2.5, 0.1, -1.9),
-                squareCount: 3,
-                layout: [
-                  [1,1],
-                  [1,0]
-                ]
-              },
-              //---------------------
-              // 2 pieces
-              //---------------------
-              {
-                startPosition: new THREE.Vector3(3.0, 0.1, -1.9),
-                squareCount: 2,
-                layout: [
-                  [1,1]
-                ]
-              },
-              //---------------------
-              // 1 pieces
-              //---------------------
-              {
-                startPosition: new THREE.Vector3(3.3, 0.1, -1.9),
-                squareCount: 1,
-                layout: [
-                  [1]
-                ]
-              }
-            ],
             block,
             blockDefinition,
+            layoutWidth,
+            layoutHeight,
             row,
             square;
 
@@ -563,9 +567,13 @@
 
               block = new THREE.Group();
 
-              block.userData.layout = blockDefinition.layout;
+              block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
               block.userData.squareCount = blockDefinition.squareCount;
               block.userData.colorAgent = colorAgent;
+              block.userData.color = color;
+
+              layoutWidth = block.userData.layout.length;
+              layoutHeight = block.userData.layout[0].length;
 
               for (i = 0, l = blockDefinition.layout.length; i < l; i++) {
                 row = blockDefinition.layout[i];
@@ -584,8 +592,12 @@
                     });
                     squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
 
-                    squareMesh.position.x = i * SQUARE_WIDTH;
-                    squareMesh.position.z = j * SQUARE_HEIGHT;
+                    squareMesh.position.x = i * SQUARE_WIDTH - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2);
+                    squareMesh.position.z = j * SQUARE_HEIGHT - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2);
+                    squareMesh.position.y = - SQUARE_DEPTH / 2;
+
+                    // squareMesh.position.x = i * SQUARE_WIDTH;
+                    // squareMesh.position.z = j * SQUARE_HEIGHT;
 
                     squareMesh.userData.xIndex = i;
                     squareMesh.userData.zIndex = j;
@@ -599,6 +611,9 @@
               block.startPosition = new THREE.Vector3();
               block.startRotation = new THREE.Vector3();
 
+              block.isUpsideDown = false;
+              block.isRotated = false;
+
               if (color === 'blue') {
                 block.startPosition.x = blockDefinition.startPosition.x;
                 block.startPosition.y = blockDefinition.startPosition.y;
@@ -611,18 +626,23 @@
                 block.startPosition.z = -blockDefinition.startPosition.z;
 
                 block.startRotation.y = Math.PI;
+                block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
               } else if (color === 'red') {
                 block.startPosition.x = -blockDefinition.startPosition.z;
                 block.startPosition.y = blockDefinition.startPosition.y;
                 block.startPosition.z = blockDefinition.startPosition.x;
 
                 block.startRotation.y = Math.PI + Math.PI / 2;
+                block.userData.layout = rotateCounterclockwise(block.userData.layout);
+                block.isRotated = true;
               } else if (color === 'yellow') {
                 block.startPosition.x = blockDefinition.startPosition.z;
                 block.startPosition.y = blockDefinition.startPosition.y;
                 block.startPosition.z = -blockDefinition.startPosition.x;
 
                 block.startRotation.y = Math.PI / 2;
+                block.userData.layout = rotateClockwise(block.userData.layout);
+                block.isRotated = true;
               }
 
               block.position.x = block.startPosition.x;
@@ -630,8 +650,6 @@
               block.position.z = block.startPosition.z;
 
               block.rotation.y = block.startRotation.y;
-
-              block.isUpsideDown = false;
 
               block.castShadow = true;
               block.receiveShadow = false;
@@ -656,8 +674,10 @@
             var
               intersect,
               intersects,
-              i, l,
-              xIndex, zIndex,
+              i, il,
+              j, jl,
+              layoutWidth,
+              layoutHeight,
               hoverable;
 
             e.preventDefault();
@@ -665,20 +685,37 @@
             mouse.x = (event.clientX / WIDTH) * 2 - 1;
             mouse.y = -(event.clientY / HEIGHT) * 2 + 1;
 
+            xIndex = null;
+            zIndex = null;
+
             raycaster.setFromCamera(mouse, camera);
 
             if (selectedSquare && selectedBlock) {
+              // TODO: put boundaries on how far you can move the block so that
+              // a) It doesn't get lost somewhere and 
+              // b) You can't move it when it isn't your turn
               
               // move along the x and z plane
               if (raycaster.ray.intersectPlane(plane, intersection)) {
                 selectedBlock.position.copy(intersection.sub(offset));
 
-                xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
-                zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
+                layoutWidth = selectedBlock.userData.layout.length;
+                layoutHeight = selectedBlock.userData.layout[0].length;
+
+                xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
+                zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
 
                 scene.remove(hintBlock);
 
                 // reset previous hover
+                // for (i = 0, il = board.length; i < il; i++) {
+                //   for (j = 0, jl = board[i].length; j < jl; j++) {
+                //     if (board[i][j].previousColor) {
+                //       board[i][j].material.color = board[i][j].previousColor;
+                //       board[i][j].previousColor = null;
+                //     }
+                //   }
+                // }
                 // if (boardSquareMeshHovered) {
                 //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
                 // }
@@ -689,19 +726,37 @@
                 ) {
                   boardSquareMeshHovered = board[xIndex][zIndex];
 
+                  // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+                  //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+                  //     if (
+                  //       board[xIndex + i] &&
+                  //       board[xIndex + i][zIndex + j] &&
+                  //       selectedBlock.userData.layout[i][j]
+                  //     ) {
+                  //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
+                  //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
+                  //     }
+                  //   }
+                  // }
                   // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
                   // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
 
                   // show the hint
-                  hintBlock = selectedBlock.clone();
+                  if (canDrop(selectedBlock, xIndex, zIndex)) {
+                    hintBlock = selectedBlock.clone();
 
-                  hintBlock.position.copy(boardSquareMeshHovered.position);
+                    hintBlock.position.copy(boardSquareMeshHovered.position);
+                    hintBlock.position.x = hintBlock.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+                    hintBlock.position.z = hintBlock.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+                    hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH / 2;
 
-                  if (selectedBlock.isUpsideDown) {
-                    hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
+                    // if (selectedBlock.isUpsideDown) {
+                    //   hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
+                    // }
+
+                    scene.add(hintBlock);
                   }
-
-                  scene.add(hintBlock);
+                    
                 }
 
               }
@@ -720,7 +775,7 @@
                   intersected = intersect.object;
                 }
 
-                container.style.cursor = 'pointer';
+                container.style.cursor = 'move';
 
               } else {
                 intersected = null;
@@ -750,6 +805,11 @@
               // disable zoom, pan, etc. while dragging
               controls.enabled = false;
 
+              // TODO: Disable movement if 
+              // a) it isn't your blocks or 
+              // b) it isn't your turn to move the shared one or
+              // c) you already dropped your block
+
               selectedSquare = intersect.object;
               if (intersect.object.parent) {
                 selectedBlock = intersect.object.parent;
@@ -764,9 +824,104 @@
           }
 
           function mouseup(e) {
+            var
+              i, il,
+              layoutWidth,
+              layoutHeight,
+              originalPosition,
+              originalRotation;
+
             e.preventDefault();
 
             controls.enabled = true;
+
+            if (
+              selectedSquare &&
+              selectedBlock
+            ) {
+              if (canDrop(selectedBlock, xIndex, zIndex)) {
+
+                boardSquareMeshHovered = board[xIndex][zIndex];
+
+                for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+                  for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+                    if (selectedBlock.userData.layout[i][j]) {
+                      board[xIndex + i][zIndex + j].userData.block = selectedBlock;
+                    }
+                  }
+                }
+
+                // animate
+                // selectedBlock.position.x = boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+                // selectedBlock.position.z = boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+                // selectedBlock.position.y = boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2;
+                layoutWidth = selectedBlock.userData.layout.length;
+                layoutHeight = selectedBlock.userData.layout[0].length;
+
+                dropTween = new TWEEN.Tween(selectedBlock.position)
+                  .to({
+                      x: boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2),
+                      z: boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2),
+                      y: boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2
+                    }, 200)
+                  .easing(TWEEN.Easing.Bounce.Out)
+                  .onComplete(function () {
+                    dropTween = null;
+                  })
+                  .start();
+
+                blocks.splice(blocks.indexOf(selectedBlock), 1);
+
+                selectedSquare = null;
+                selectedBlock = null;
+
+                scene.remove(hintBlock);
+
+              } else {
+
+                // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
+                if (
+                  (
+                    selectedBlock.position.x > 2.2 &&
+                    selectedBlock.position.x < 8.0
+                  ) && (
+                    selectedBlock.position.z < 2.4 &&
+                    selectedBlock.position.z > -2.4
+                  )
+                ) {
+                  selectedBlock.startPosition.x = selectedBlock.position.x;
+                  selectedBlock.startPosition.z = selectedBlock.position.z;
+                  selectedBlock.startRotation = selectedBlock.rotation;
+                }
+
+                // move it back to original position and rotation
+                originalPosition = selectedBlock.startPosition;
+                originalRotation = selectedBlock.startRotation;
+                
+                dropTween = new TWEEN.Tween(selectedBlock.position)
+                  .to({
+                      x: originalPosition.x,
+                      z: originalPosition.z,
+                      y: originalPosition.y
+                    }, 200)
+                  .easing(TWEEN.Easing.Exponential.Out)
+                  .onComplete(function () {
+                    dropTween = null;
+                  })
+                  .start();
+
+                new TWEEN.Tween(selectedBlock.rotation)
+                  .to({
+                      y: originalRotation.y,
+                      z: originalRotation.z
+                    }, 200)
+                  .easing(TWEEN.Easing.Exponential.Out)
+                  .onComplete(function () {
+                    dropTween = null;
+                  })
+                  .start();
+              }
+            }
 
             if (intersected) {
               selectedSquare = null;
@@ -794,6 +949,10 @@
               // left
               if (e.keyCode === 37) {
 
+                blockReference.isRotated = !blockReference.isRotated;
+                blockReference.userData.layout = rotateClockwise(blockReference.userData.layout);
+
+                // animation
                 yRotation = blockReference.rotation.y;
 
                 rotationTween = new TWEEN.Tween(blockReference.rotation)
@@ -801,8 +960,6 @@
                   .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
-
-                    // TODO: Update the layout of the group
                     blockReference = null;
                   })
                   .start();
@@ -810,17 +967,21 @@
               // up
               } else if (e.keyCode === 38) {
 
-                xRotation = blockReference.rotation.x;
+                blockReference.isUpsideDown = !blockReference.isUpsideDown;
+                if (blockReference.isRotated) {
+                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+                } else {
+                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
+                }
+
+                // animation
+                zRotation = blockReference.rotation.z;
 
                 rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({x: xRotation + Math.PI}, 200)
+                  .to({z: zRotation + Math.PI}, 200)
                   .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
-
-                    blockReference.isUpsideDown = !blockReference.isUpsideDown;
-
-                    // TODO: Update the layout of the group
                     blockReference = null;
                   })
                   .start();
@@ -828,6 +989,10 @@
               // right
               } else if (e.keyCode === 39) {
 
+                blockReference.isRotated = !blockReference.isRotated;
+                blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
+
+                // animation
                 yRotation = blockReference.rotation.y;
 
                 rotationTween = new TWEEN.Tween(blockReference.rotation)
@@ -835,8 +1000,6 @@
                   .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
-
-                    // TODO: Update the layout of the group
                     blockReference = null;
                   })
                   .start();
@@ -844,17 +1007,21 @@
               // down
               } else if (e.keyCode === 40) {
 
-                xRotation = blockReference.rotation.x;
+                blockReference.isUpsideDown = !blockReference.isUpsideDown;
+                if (blockReference.isRotated) {
+                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+                } else {
+                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
+                }
+
+                // animation
+                zRotation = blockReference.rotation.z;
 
                 rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({x: xRotation - Math.PI}, 200)
+                  .to({z: zRotation - Math.PI}, 200)
                   .easing(TWEEN.Easing.Exponential.Out)
                   .onComplete(function () {
                     rotationTween = null;
-
-                    blockReference.isUpsideDown = !blockReference.isUpsideDown;
-
-                    // TODO: Update the layout of the group
                     blockReference = null;
                   })
                   .start();
@@ -862,6 +1029,297 @@
               
             }
 
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function rotateClockwise(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              row,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+              for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function rotateCounterclockwise(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              row,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+              for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function flipVertical(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              row,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+              for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function flipHorizontal(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              row,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+              for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          function canDrop(block, xIndex, zIndex) {
+            var
+              i, il,
+              j, jl,
+              layout = block.userData.layout,
+              layoutWidth = layout.length,
+              layoutHeight = layout[0].length,
+              onBoard = true,
+              squaresOpen = true,
+              touchingFace = false,
+              touchingCorner = false;
+            
+            // square on board, square open
+            for (i = 0, il = layoutWidth; i < il; i++) {
+              for (j = 0, jl = layoutHeight; j < jl; j++) {
+
+                // is this square on the board?
+                if (
+                  !board[xIndex + i] ||
+                  !board[xIndex + i][zIndex + j]
+                ) {
+                  onBoard = false;
+                }
+
+                // is this square open?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  board[xIndex + i][zIndex + j].userData.block &&
+                  layout[i][j]
+                ) {
+                  squaresOpen = false;
+                  break;
+                }
+
+                // is a touching the corner square?
+                if (
+                  (
+                    (
+                      (xIndex + i) === 0 ||
+                      (xIndex + i) === 19 // board.length
+                    ) && (
+                      (zIndex + j) === 0 ||
+                      (zIndex + j) === 19 // board.length
+                    )
+                    
+                  ) && 
+                  layout[i] &&
+                  layout[i][j]
+                ) {
+                  touchingCorner = true;
+                }
+
+                // is it touching another corner of a square that is the same color?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  layout[i] &&
+                  layout[i][j] &&
+                  // touching on one of the corners?                  
+                  (
+                    // top left
+                    (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j - 1] &&
+                      board[xIndex + i - 1][zIndex + j - 1].userData.block &&
+                      board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // top right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j - 1] &&
+                      board[xIndex + i + 1][zIndex + j - 1].userData.block &&
+                      board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom left
+                    ) || (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j + 1] &&
+                      board[xIndex + i - 1][zIndex + j + 1].userData.block &&
+                      board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j + 1] &&
+                      board[xIndex + i + 1][zIndex + j + 1].userData.block &&
+                      board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    )
+                  )
+                ) {
+                  touchingCorner = true;
+                }
+
+                // is the block touching up against another block of the same color?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  layout[i] &&
+                  layout[i][j] &&
+                  // touching on one of the corners?
+                  (
+                    // left
+                    (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j] &&
+                      board[xIndex + i - 1][zIndex + j].userData.block &&
+                      board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j] &&
+                      board[xIndex + i + 1][zIndex + j].userData.block &&
+                      board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // top
+                    ) || (
+                      board[xIndex + i] &&
+                      board[xIndex + i][zIndex + j - 1] &&
+                      board[xIndex + i][zIndex + j - 1].userData.block &&
+                      board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom
+                    ) || (
+                      board[xIndex + i] &&
+                      board[xIndex + i][zIndex + j + 1] &&
+                      board[xIndex + i][zIndex + j + 1].userData.block &&
+                      board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    )
+                  )
+                ) {
+                  touchingFace = true;
+                }
+
+              }
+
+              if (!onBoard || !squaresOpen || touchingFace) {
+                break;
+              }
+            }
+
+            return onBoard && squaresOpen && !touchingFace && touchingCorner;
           }
 
           renderer.domElement.addEventListener('mousemove', mousemove, false);

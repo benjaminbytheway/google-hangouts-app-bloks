@@ -72,7 +72,9 @@ gulp.task('js', [
       lintPromise = new Promise(function (resolve, reject) {
         gulp.src([
           SRC + '/scripts/*.js',
-          '!' + SRC + '/scripts/require.js'
+          '!' + SRC + '/scripts/require.js',
+          '!' + SRC + '/scripts/OBJLoader.js',
+          '!' + SRC + '/scripts/TrackballControls.js'
         ])
           .on('error', function (err) {
             reject(err);
@@ -127,6 +129,13 @@ gulp.task('js', [
           .on('end', function () {
             resolve();
           })
+          .pipe(gulp.dest(DIST + '/scripts/'));
+      }),
+      copyPromise = new Promise(function (resolve, reject) {
+        gulp.src([
+            SRC + '/scripts/OBJLoader.js',
+            SRC + '/scripts/TrackballControls.js'
+          ])
           .pipe(gulp.dest(DIST + '/scripts/'));
       });
 

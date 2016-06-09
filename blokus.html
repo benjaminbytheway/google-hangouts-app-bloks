@@ -25,9 +25,9 @@
       <button id="view-3">View 3</button>
     </div>
     <script>
-      // TODO: TrackBallControlls and how it affects that camera views 1, 2, and 3...
-
       'use strict';
+
+      // TODO: TrackBallControlls and how it affects that camera views 1, 2, and 3...
 
       var
         w = window,
@@ -49,7 +49,7 @@
         intersection,
         mouse,
         controls,
-        loader,
+        loader = new THREE.JSONLoader(),
         // game objects
         tableMesh,
         tableGeometry,
@@ -277,1077 +277,1067 @@
         TABLE_WIDTH = 10,
         TABLE_HEIGHT = 10;
 
+      //------------------------------------------------------------------
+      // renderer
+      //------------------------------------------------------------------
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(WIDTH, HEIGHT);
+      renderer.setClearColor(0xffffff);
+      renderer.shadowMap.enabled = true;
 
-      function loadOBJPromise(url) {
-        return new Promise(function (resolve, reject) {
-          var
-            loader;
+      //------------------------------------------------------------------
+      // scene
+      //------------------------------------------------------------------
+      scene = new THREE.Scene();
 
-          loader = new THREE.OBJLoader();
-          loader.load(
-            // resource URL
-            url,
-            // Function when resource is loaded
-            function (object) {
-              resolve(object);
-            }
-          );
-        });
-          
-      };
+      //------------------------------------------------------------------
+      // camera
+      //------------------------------------------------------------------
+      camera = new THREE.PerspectiveCamera(
+        45, 
+        WIDTH/HEIGHT, 
+        0.1, 
+        1000
+      );
 
-      Promise.all([
-          loadOBJPromise('src/images/block-1.obj')
-            .then(function (group) {
-              squareGeometryTemplate = group.children[0].geometry;
-            }),
-          loadOBJPromise('src/images/BoardSquare.obj')
-            .then(function (group) {
-              boardSquareGeometryTemplate = group.children[0].geometry;
-            })
-        ])
-        .then(function () {
+      camera.position.x = 6;
+      camera.position.y = 6;
+      camera.position.z = 6;
 
-          //------------------------------------------------------------------
-          // renderer
-          //------------------------------------------------------------------
-          renderer = new THREE.WebGLRenderer();
-          renderer.setSize(WIDTH, HEIGHT);
-          renderer.setClearColor(0xffffff);
-          renderer.shadowMap.enabled = true;
+      camera.rotation.x = 0;
+      camera.rotation.y = 0;
+      camera.rotation.z = 0;
 
-          //------------------------------------------------------------------
-          // scene
-          //------------------------------------------------------------------
-          scene = new THREE.Scene();
+      camera.lookAt(new THREE.Vector3(0,0,0));
 
-          //------------------------------------------------------------------
-          // camera
-          //------------------------------------------------------------------
-          camera = new THREE.PerspectiveCamera(
-            45, 
-            WIDTH/HEIGHT, 
-            0.1, 
-            1000
-          );
+      // listeners
+      // TODO: Do views for:
+      // - all corners - 4
+      // - all sides - 4
+      // - all rotations of to top view - 4
 
-          camera.position.x = 6;
-          camera.position.y = 6;
-          camera.position.z = 6;
+      view1 = d.getElementById('view-1');
+      view2 = d.getElementById('view-2');
+      view3 = d.getElementById('view-3');
 
-          camera.rotation.x = 0;
-          camera.rotation.y = 0;
-          camera.rotation.z = 0;
+      view1.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 10;
+        camera.position.z = 0;
 
-          camera.lookAt(new THREE.Vector3(0,0,0));
+        camera.rotation.x = 0;
+        camera.rotation.y = 0;
+        camera.rotation.z = 0;
 
-          // listeners
-          // TODO: Do views for:
-          // - all corners - 4
-          // - all sides - 4
-          // - all rotations of to top view - 4
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
 
-          view1 = d.getElementById('view-1');
-          view2 = d.getElementById('view-2');
-          view3 = d.getElementById('view-3');
+      view2.addEventListener('click', function (evt) {
+        camera.position.x = 0;
+        camera.position.y = 6;
+        camera.position.z = 9;
 
-          view1.addEventListener('click', function (evt) {
-            camera.position.x = 0;
-            camera.position.y = 10;
-            camera.position.z = 0;
+        camera.rotation.x = 0;
+        camera.rotation.y = 0;
+        camera.rotation.z = 0;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
+      view3.addEventListener('click', function (evt) {
+        camera.position.x = 6;
+        camera.position.y = 6;
+        camera.position.z = 6;
 
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+        camera.rotation.x = 0;
+        camera.rotation.y = 0;
+        camera.rotation.z = 0;
+        
+        camera.lookAt(new THREE.Vector3(0,0,0));
+      });
 
-          view2.addEventListener('click', function (evt) {
-            camera.position.x = 0;
-            camera.position.y = 6;
-            camera.position.z = 9;
+      // resize if the window gets resized
+      w.addEventListener('resize', function () {
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
-            
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+        WIDTH = container.offsetWidth;
+        HEIGHT = container.offsetHeight;
+        
+        // update the camera
+        camera.aspect = WIDTH / HEIGHT;
+        camera.updateProjectionMatrix();
 
-          view3.addEventListener('click', function (evt) {
-            camera.position.x = 6;
-            camera.position.y = 6;
-            camera.position.z = 6;
+        // update the renderer
+        renderer.setSize(WIDTH, HEIGHT);
+        
+      }, false);
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
-            
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+      //------------------------------------------------------------------
+      // controls
+      //------------------------------------------------------------------
+      controls = new THREE.TrackballControls(camera);
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 1.2;
+      controls.panSpeed = 0.3;
+      controls.noZoom = false;
+      controls.noPan = false;
+      controls.noRotate = false;
+      controls.staticMoving = false;
+      controls.dynamicDampingFactor = 0.3;
 
-          // resize if the window gets resized
-          w.addEventListener('resize', function () {
+      //------------------------------------------------------------------
+      // lights
+      //------------------------------------------------------------------
+      directionalLights = [];
 
-            WIDTH = container.offsetWidth;
-            HEIGHT = container.offsetHeight;
-            
-            // update the camera
-            camera.aspect = WIDTH / HEIGHT;
-            camera.updateProjectionMatrix();
+      // 1 - from above
+      directionalLightCount = 0;
+      directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-            // update the renderer
-            renderer.setSize(WIDTH, HEIGHT);
-            
-          }, false);
+      directionalLights[directionalLightCount].position.x = -50;
+      directionalLights[directionalLightCount].position.y = 50;
+      directionalLights[directionalLightCount].position.z = -50;
 
-          //------------------------------------------------------------------
-          // controls
-          //------------------------------------------------------------------
-          controls = new THREE.TrackballControls(camera);
-          controls.rotateSpeed = 1.0;
-          controls.zoomSpeed = 1.2;
-          controls.panSpeed = 0.3;
-          controls.noZoom = false;
-          controls.noPan = false;
-          controls.noRotate = false;
-          controls.staticMoving = false;
-          controls.dynamicDampingFactor = 0.3;
+      directionalLights[directionalLightCount].castShadow = true;
+      scene.add(directionalLights[directionalLightCount]);
 
-          //------------------------------------------------------------------
-          // lights
-          //------------------------------------------------------------------
-          directionalLights = [];
+      // 2 - from above
+      directionalLightCount = 1;
+      directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          // 1 - from above
-          directionalLightCount = 0;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+      directionalLights[directionalLightCount].position.x = 50;
+      directionalLights[directionalLightCount].position.y = 50;
+      directionalLights[directionalLightCount].position.z = 50;
 
-          directionalLights[directionalLightCount].position.x = -50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = -50;
+      directionalLights[directionalLightCount].castShadow = true;
+      scene.add(directionalLights[directionalLightCount]);
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+      // 3 - from above
+      directionalLightCount = 2;
+      directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          // 2 - from above
-          directionalLightCount = 1;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+      directionalLights[directionalLightCount].position.x = -50;
+      directionalLights[directionalLightCount].position.y = 50;
+      directionalLights[directionalLightCount].position.z = 50;
 
-          directionalLights[directionalLightCount].position.x = 50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = 50;
+      directionalLights[directionalLightCount].castShadow = true;
+      scene.add(directionalLights[directionalLightCount]);
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+      // 4 - from above
+      directionalLightCount = 3;
+      directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          // 3 - from above
-          directionalLightCount = 2;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+      directionalLights[directionalLightCount].position.x = 50;
+      directionalLights[directionalLightCount].position.y = 50;
+      directionalLights[directionalLightCount].position.z = -50;
 
-          directionalLights[directionalLightCount].position.x = -50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = 50;
+      directionalLights[directionalLightCount].castShadow = true;
+      scene.add(directionalLights[directionalLightCount]);
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+      // 5 - from below
+      directionalLightCount = 4;
+      directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          // 4 - from above
-          directionalLightCount = 3;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+      directionalLights[directionalLightCount].position.x = 0;
+      directionalLights[directionalLightCount].position.y = -50;
+      directionalLights[directionalLightCount].position.z = 0;
 
-          directionalLights[directionalLightCount].position.x = 50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = -50;
+      directionalLights[directionalLightCount].castShadow = true;
+      scene.add(directionalLights[directionalLightCount]);
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+      ambientLight = new THREE.AmbientLight(0x505050);
+      scene.add(ambientLight);
 
-          // 5 - from below
-          directionalLightCount = 4;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+      //------------------------------------------------------------------
+      // Table
+      //------------------------------------------------------------------
+      // tableGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, TABLE_HEIGHT);
+      // tableMaterial = new THREE.MeshStandardMaterial({
+      //   color: 0xeeeeee,
+      //   side: THREE.BackSide
+      // });
+      // tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
 
-          directionalLights[directionalLightCount].position.x = 0;
-          directionalLights[directionalLightCount].position.y = -50;
-          directionalLights[directionalLightCount].position.z = 0;
+      // tableMesh.position.y = -1;
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+      // tableMesh.rotation.x = 0.5 * Math.PI;
 
-          ambientLight = new THREE.AmbientLight(0x505050);
-          scene.add(ambientLight);
+      // tableMesh.castShadow = false;
+      // tableMesh.receiveShadow = true;
 
-          //------------------------------------------------------------------
-          // Table
-          //------------------------------------------------------------------
-          // tableGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, TABLE_HEIGHT);
-          // tableMaterial = new THREE.MeshStandardMaterial({
-          //   color: 0xeeeeee,
-          //   side: THREE.BackSide
-          // });
-          // tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+      // scene.add(tableMesh);
 
-          // tableMesh.position.y = -1;
+      //------------------------------------------------------------------
+      // Board
+      //------------------------------------------------------------------
+      board = [];
+      //boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
+      boardSquareGeometryTemplate = loader.parse({
+        "metadata": {},
+        "scale" : 1.000000,
+        "materials": [],
+        "vertices": [-0.100000,0.000000,0.100000,-0.100000,0.010000,0.100000,-0.100000,0.000000,-0.100000,-0.100000,0.010000,-0.100000,0.100000,0.000000,0.100000,0.100000,0.010000,0.100000,0.100000,0.000000,-0.100000,0.100000,0.010000,-0.100000,0.097500,0.010000,0.097500,-0.097500,0.010000,0.097500,0.097500,0.010000,-0.097500,-0.097500,0.010000,-0.097500,0.095000,0.000000,0.095000,-0.095000,0.000000,0.095000,0.095000,0.000000,-0.095000,-0.095000,0.000000,-0.095000],
+        "morphTargets": [],
+        "morphColors": [],
+        "normals": [-1,0,0,0,0,-1,1,0,0,0,0,1,0,-1,0,0,1,0,-0.9701,0.2425,0,0,0.2425,0.9701,0,0.2425,-0.9701,0.9701,0.2425,0],
+        "colors": [],
+        "uvs": [[]],
+        "faces": [35,1,3,2,0,0,0,0,0,0,35,3,7,6,2,0,1,1,1,1,35,7,5,4,6,0,2,2,2,2,35,5,1,0,4,0,3,3,3,3,35,0,2,6,4,0,4,4,4,4,35,9,11,3,1,0,5,5,5,5,35,5,8,9,1,0,5,5,5,5,35,5,7,10,8,0,5,5,5,5,35,8,10,14,12,0,6,6,6,6,35,10,7,3,11,0,5,5,5,5,35,12,14,15,13,0,5,5,5,5,35,10,11,15,14,0,7,7,7,7,35,9,8,12,13,0,8,8,8,8,35,11,9,13,15,0,9,9,9,9]
+      }).geometry;
 
-          // tableMesh.rotation.x = 0.5 * Math.PI;
+      for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
+        board[i] = [];
 
-          // tableMesh.castShadow = false;
-          // tableMesh.receiveShadow = true;
-
-          // scene.add(tableMesh);
-
-          //------------------------------------------------------------------
-          // Board
-          //------------------------------------------------------------------
-          board = [];
-          //boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
-
-          for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
-            board[i] = [];
-
-            for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
-              boardSquareMaterial = new THREE.MeshPhongMaterial({
-                color: 0xfcfcfc,
-                shininess: 50,
-                side: THREE.DoubleSide
-              });
-              boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
-
-              boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + SQUARE_WIDTH / 2;
-              boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + SQUARE_HEIGHT / 2;
-
-              // boardSquareMesh.rotation.x = 0.5 * Math.PI;
-
-              boardSquareMesh.castShadow = true;
-              boardSquareMesh.receiveShadow = false;
-
-              boardSquareMesh.userData.xIndex = i;
-              boardSquareMesh.userData.zIndex = j;
-              boardSquareMesh.userData.block = null;
-              boardSquareMesh.userData.square = null;
-
-              board[i][j] = boardSquareMesh;
-              scene.add(boardSquareMesh);
-            }
-          }
-
-          boardBaseGeometry = new THREE.BoxGeometry(
-            (BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH), 
-            BOARD_BASE_DEPTH, 
-            (BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT)
-          );
-          boardBaseMaterial = new THREE.MeshPhongMaterial({
+        for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
+          boardSquareMaterial = new THREE.MeshPhongMaterial({
             color: 0xfcfcfc,
             shininess: 50,
             side: THREE.DoubleSide
           });
-          boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
-          boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2) - 0.0001;
+          boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
 
-          scene.add(boardBaseMesh);
+          boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + SQUARE_WIDTH / 2;
+          boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + SQUARE_HEIGHT / 2;
 
-          //------------------------------------------------------------------
-          // Blocks
-          //------------------------------------------------------------------
-          var 
-            block,
-            blockDefinition,
-            layoutWidth,
-            layoutHeight,
-            row,
-            square;
+          // boardSquareMesh.rotation.x = 0.5 * Math.PI;
 
-          for (color in colors) {
-            colorAgent = colors[color];
-            // TODO: find out who has which color
+          boardSquareMesh.castShadow = true;
+          boardSquareMesh.receiveShadow = false;
 
-            for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-              blockDefinition = blockDefinitions[k];
+          boardSquareMesh.userData.xIndex = i;
+          boardSquareMesh.userData.zIndex = j;
+          boardSquareMesh.userData.block = null;
+          boardSquareMesh.userData.square = null;
 
-              block = new THREE.Group();
+          board[i][j] = boardSquareMesh;
+          scene.add(boardSquareMesh);
+        }
+      }
 
-              block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
-              block.userData.squareCount = blockDefinition.squareCount;
-              block.userData.colorAgent = colorAgent;
-              block.userData.color = color;
+      boardBaseGeometry = new THREE.BoxGeometry(
+        (BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH), 
+        BOARD_BASE_DEPTH, 
+        (BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT)
+      );
+      boardBaseMaterial = new THREE.MeshPhongMaterial({
+        color: 0xfcfcfc,
+        shininess: 50,
+        side: THREE.DoubleSide
+      });
+      boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
+      boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2) - 0.0001;
 
-              layoutWidth = block.userData.layout.length;
-              layoutHeight = block.userData.layout[0].length;
+      scene.add(boardBaseMesh);
 
-              for (i = 0, l = blockDefinition.layout.length; i < l; i++) {
-                row = blockDefinition.layout[i];
+      //------------------------------------------------------------------
+      // Blocks
+      //------------------------------------------------------------------
+      var 
+        block,
+        blockDefinition,
+        layoutWidth,
+        layoutHeight,
+        row,
+        square;
 
-                for (j = 0, jl = row.length; j < jl; j++) {
-                  square = row[j];
+      for (color in colors) {
+        colorAgent = colors[color];
+        // TODO: find out who has which color
 
-                  if (square) {
-                    //squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
-                    squareMaterial = new THREE.MeshPhongMaterial({
-                      color: block.userData.colorAgent.hex,
-                      transparent: true,
-                      opacity: 0.75,
-                      shininess: 75,
-                      side: THREE.DoubleSide
-                    });
-                    squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
+        for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          blockDefinition = blockDefinitions[k];
 
-                    squareMesh.position.x = i * SQUARE_WIDTH - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2);
-                    squareMesh.position.z = j * SQUARE_HEIGHT - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2);
-                    squareMesh.position.y = - SQUARE_DEPTH / 2;
+          block = new THREE.Group();
 
-                    // squareMesh.position.x = i * SQUARE_WIDTH;
-                    // squareMesh.position.z = j * SQUARE_HEIGHT;
+          block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
+          block.userData.squareCount = blockDefinition.squareCount;
+          block.userData.colorAgent = colorAgent;
+          block.userData.color = color;
 
-                    squareMesh.userData.xIndex = i;
-                    squareMesh.userData.zIndex = j;
+          layoutWidth = block.userData.layout.length;
+          layoutHeight = block.userData.layout[0].length;
 
-                    block.add(squareMesh);
-                  }
+          for (i = 0, l = blockDefinition.layout.length; i < l; i++) {
+            row = blockDefinition.layout[i];
 
-                }
+            for (j = 0, jl = row.length; j < jl; j++) {
+              square = row[j];
+
+              if (square) {
+                //squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
+                squareGeometryTemplate = loader.parse({
+                  metadata: {},
+                  "scale" : 1.000000,
+                  "materials": [],
+                  "vertices": [0.100000,0.010000,-0.100000,-0.100000,0.010000,0.100000,0.100000,0.010000,0.100000,-0.100000,0.010000,-0.100000,-0.100000,0.030000,0.100000,0.100000,0.030000,0.100000,-0.100000,0.030000,-0.100000,0.100000,0.030000,-0.100000,-0.092500,0.030000,0.092500,-0.092500,0.030000,-0.092500,0.092500,0.030000,0.092500,0.092500,0.030000,-0.092500,-0.092500,0.040000,0.092500,-0.092500,0.040000,-0.092500,0.092500,0.040000,0.092500,0.092500,0.040000,-0.092500,-0.092500,0.010000,0.092500,0.092500,0.010000,0.092500,-0.092500,0.010000,-0.092500,0.092500,0.010000,-0.092500,-0.092500,0.000000,0.092500,0.092500,0.000000,0.092500,-0.092500,0.000000,-0.092500,0.092500,0.000000,-0.092500,-0.065000,0.040000,0.065000,-0.065000,0.040000,-0.065000,0.065000,0.040000,0.065000,0.065000,0.040000,-0.065000,-0.065000,0.030000,0.065000,-0.065000,0.030000,-0.065000,0.065000,0.030000,0.065000,0.065000,0.030000,-0.065000,-0.065000,0.000000,0.065000,0.065000,0.000000,0.065000,-0.065000,0.000000,-0.065000,0.065000,0.000000,-0.065000,-0.065000,0.010000,0.065000,0.065000,0.010000,0.065000,-0.065000,0.010000,-0.065000,0.065000,0.010000,-0.065000],
+                  "morphTargets": [],
+                  "morphColors": [],
+                  "normals": [0,0,-1,0,0,1,1,0,0,-1,0,0,0,1,0,0,-1,0],
+                  "colors": [],
+                  "uvs": [[]],
+                  "faces": [35,0,3,6,7,0,0,0,0,0,35,1,2,5,4,0,1,1,1,1,35,2,0,7,5,0,2,2,2,2,35,3,1,4,6,0,3,3,3,3,35,9,11,7,6,0,4,4,4,4,35,4,8,9,6,0,4,4,4,4,35,4,5,10,8,0,4,4,4,4,35,11,9,13,15,0,0,0,0,0,35,10,5,7,11,0,4,4,4,4,35,10,11,15,14,0,2,2,2,2,35,9,8,12,13,0,3,3,3,3,35,8,10,14,12,0,1,1,1,1,35,17,19,0,2,0,5,5,5,5,35,1,16,17,2,0,5,5,5,5,35,1,3,18,16,0,5,5,5,5,35,17,16,20,21,0,1,1,1,1,35,18,3,0,19,0,5,5,5,5,35,16,18,22,20,0,3,3,3,3,35,19,17,21,23,0,2,2,2,2,35,18,19,23,22,0,0,0,0,0,35,25,27,15,13,0,4,4,4,4,35,12,24,25,13,0,4,4,4,4,35,12,14,26,24,0,4,4,4,4,35,24,26,30,28,0,0,0,0,0,35,26,14,15,27,0,4,4,4,4,35,28,30,31,29,0,4,4,4,4,35,26,27,31,30,0,3,3,3,3,35,27,25,29,31,0,1,1,1,1,35,25,24,28,29,0,2,2,2,2,35,33,35,23,21,0,5,5,5,5,35,20,32,33,21,0,5,5,5,5,35,20,22,34,32,0,5,5,5,5,35,33,32,36,37,0,0,0,0,0,35,34,22,23,35,0,5,5,5,5,35,36,38,39,37,0,5,5,5,5,35,32,34,38,36,0,2,2,2,2,35,34,35,39,38,0,1,1,1,1,35,35,33,37,39,0,3,3,3,3]
+                }).geometry;
+                squareMaterial = new THREE.MeshPhongMaterial({
+                  color: block.userData.colorAgent.hex,
+                  transparent: true,
+                  opacity: 0.75,
+                  shininess: 75,
+                  side: THREE.DoubleSide
+                });
+                squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
+
+                squareMesh.position.x = i * SQUARE_WIDTH - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2);
+                squareMesh.position.z = j * SQUARE_HEIGHT - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2);
+                squareMesh.position.y = - SQUARE_DEPTH / 2;
+
+                // squareMesh.position.x = i * SQUARE_WIDTH;
+                // squareMesh.position.z = j * SQUARE_HEIGHT;
+
+                squareMesh.userData.xIndex = i;
+                squareMesh.userData.zIndex = j;
+
+                block.add(squareMesh);
               }
 
-              block.startPosition = new THREE.Vector3();
-              block.startRotation = new THREE.Vector3();
+            }
+          }
 
-              block.isUpsideDown = false;
-              block.isRotated = false;
+          block.startPosition = new THREE.Vector3();
+          block.startRotation = new THREE.Vector3();
 
-              if (color === 'blue') {
-                block.startPosition.x = blockDefinition.startPosition.x;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = blockDefinition.startPosition.z;
+          block.isUpsideDown = false;
+          block.isRotated = false;
 
-                block.startRotation.y = 0;
-              } else if (color === 'green') {
-                block.startPosition.x = -blockDefinition.startPosition.x;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = -blockDefinition.startPosition.z;
+          if (color === 'blue') {
+            block.startPosition.x = blockDefinition.startPosition.x;
+            block.startPosition.y = blockDefinition.startPosition.y;
+            block.startPosition.z = blockDefinition.startPosition.z;
 
-                block.startRotation.y = Math.PI;
-                block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
-              } else if (color === 'red') {
-                block.startPosition.x = -blockDefinition.startPosition.z;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = blockDefinition.startPosition.x;
+            block.startRotation.y = 0;
+          } else if (color === 'green') {
+            block.startPosition.x = -blockDefinition.startPosition.x;
+            block.startPosition.y = blockDefinition.startPosition.y;
+            block.startPosition.z = -blockDefinition.startPosition.z;
 
-                block.startRotation.y = Math.PI + Math.PI / 2;
-                block.userData.layout = rotateCounterclockwise(block.userData.layout);
-                block.isRotated = true;
-              } else if (color === 'yellow') {
-                block.startPosition.x = blockDefinition.startPosition.z;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = -blockDefinition.startPosition.x;
+            block.startRotation.y = Math.PI;
+            block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
+          } else if (color === 'red') {
+            block.startPosition.x = -blockDefinition.startPosition.z;
+            block.startPosition.y = blockDefinition.startPosition.y;
+            block.startPosition.z = blockDefinition.startPosition.x;
 
-                block.startRotation.y = Math.PI / 2;
-                block.userData.layout = rotateClockwise(block.userData.layout);
-                block.isRotated = true;
+            block.startRotation.y = Math.PI + Math.PI / 2;
+            block.userData.layout = rotateCounterclockwise(block.userData.layout);
+            block.isRotated = true;
+          } else if (color === 'yellow') {
+            block.startPosition.x = blockDefinition.startPosition.z;
+            block.startPosition.y = blockDefinition.startPosition.y;
+            block.startPosition.z = -blockDefinition.startPosition.x;
+
+            block.startRotation.y = Math.PI / 2;
+            block.userData.layout = rotateClockwise(block.userData.layout);
+            block.isRotated = true;
+          }
+
+          block.position.x = block.startPosition.x;
+          block.position.y = block.startPosition.y;
+          block.position.z = block.startPosition.z;
+
+          block.rotation.y = block.startRotation.y;
+
+          block.castShadow = true;
+          block.receiveShadow = false;
+
+          blocks.push(block);
+
+          scene.add(block);
+        }
+
+      }
+
+      //------------------------------------------------------------------
+      // Interaction
+      //------------------------------------------------------------------
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      plane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
+      offset = new THREE.Vector3();
+      intersection = new THREE.Vector3();
+
+      function mousemove(e) {
+        var
+          intersect,
+          intersects,
+          i, il,
+          j, jl,
+          layoutWidth,
+          layoutHeight,
+          hoverable;
+
+        e.preventDefault();
+
+        mouse.x = (event.clientX / WIDTH) * 2 - 1;
+        mouse.y = -(event.clientY / HEIGHT) * 2 + 1;
+
+        xIndex = null;
+        zIndex = null;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        if (selectedSquare && selectedBlock) {
+          // TODO: put boundaries on how far you can move the block so that
+          // a) It doesn't get lost somewhere and 
+          // b) You can't move it when it isn't your turn
+          
+          // move along the x and z plane
+          if (raycaster.ray.intersectPlane(plane, intersection)) {
+            selectedBlock.position.copy(intersection.sub(offset));
+
+            layoutWidth = selectedBlock.userData.layout.length;
+            layoutHeight = selectedBlock.userData.layout[0].length;
+
+            xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
+            zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
+
+            scene.remove(hintBlock);
+
+            // reset previous hover
+            // for (i = 0, il = board.length; i < il; i++) {
+            //   for (j = 0, jl = board[i].length; j < jl; j++) {
+            //     if (board[i][j].previousColor) {
+            //       board[i][j].material.color = board[i][j].previousColor;
+            //       board[i][j].previousColor = null;
+            //     }
+            //   }
+            // }
+            // if (boardSquareMeshHovered) {
+            //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
+            // }
+
+            if (
+              board[xIndex] &&
+              board[xIndex][zIndex]
+            ) {
+              boardSquareMeshHovered = board[xIndex][zIndex];
+
+              // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+              //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+              //     if (
+              //       board[xIndex + i] &&
+              //       board[xIndex + i][zIndex + j] &&
+              //       selectedBlock.userData.layout[i][j]
+              //     ) {
+              //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
+              //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
+              //     }
+              //   }
+              // }
+              // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
+              // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
+
+              // show the hint
+              if (canDrop(selectedBlock, xIndex, zIndex)) {
+                hintBlock = selectedBlock.clone();
+
+                hintBlock.position.copy(boardSquareMeshHovered.position);
+                hintBlock.position.x = hintBlock.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+                hintBlock.position.z = hintBlock.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+                hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH / 2;
+
+                // if (selectedBlock.isUpsideDown) {
+                //   hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
+                // }
+
+                scene.add(hintBlock);
               }
-
-              block.position.x = block.startPosition.x;
-              block.position.y = block.startPosition.y;
-              block.position.z = block.startPosition.z;
-
-              block.rotation.y = block.startRotation.y;
-
-              block.castShadow = true;
-              block.receiveShadow = false;
-
-              blocks.push(block);
-
-              scene.add(block);
+                
             }
 
           }
 
-          //------------------------------------------------------------------
-          // Interaction
-          //------------------------------------------------------------------
-          raycaster = new THREE.Raycaster();
-          mouse = new THREE.Vector2();
-          plane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
-          offset = new THREE.Vector3();
-          intersection = new THREE.Vector3();
+        } else {
+          // TODO: Transform an object when hovered
 
-          function mousemove(e) {
-            var
-              intersect,
-              intersects,
-              i, il,
-              j, jl,
-              layoutWidth,
-              layoutHeight,
-              hoverable;
+          intersects = raycaster.intersectObjects(blocks, true);
 
-            e.preventDefault();
+          if (intersects.length > 0) {
+            intersect = intersects[0];
 
-            mouse.x = (event.clientX / WIDTH) * 2 - 1;
-            mouse.y = -(event.clientY / HEIGHT) * 2 + 1;
-
-            xIndex = null;
-            zIndex = null;
-
-            raycaster.setFromCamera(mouse, camera);
-
-            if (selectedSquare && selectedBlock) {
-              // TODO: put boundaries on how far you can move the block so that
-              // a) It doesn't get lost somewhere and 
-              // b) You can't move it when it isn't your turn
-              
-              // move along the x and z plane
-              if (raycaster.ray.intersectPlane(plane, intersection)) {
-                selectedBlock.position.copy(intersection.sub(offset));
-
-                layoutWidth = selectedBlock.userData.layout.length;
-                layoutHeight = selectedBlock.userData.layout[0].length;
-
-                xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
-                zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
-
-                scene.remove(hintBlock);
-
-                // reset previous hover
-                // for (i = 0, il = board.length; i < il; i++) {
-                //   for (j = 0, jl = board[i].length; j < jl; j++) {
-                //     if (board[i][j].previousColor) {
-                //       board[i][j].material.color = board[i][j].previousColor;
-                //       board[i][j].previousColor = null;
-                //     }
-                //   }
-                // }
-                // if (boardSquareMeshHovered) {
-                //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
-                // }
-
-                if (
-                  board[xIndex] &&
-                  board[xIndex][zIndex]
-                ) {
-                  boardSquareMeshHovered = board[xIndex][zIndex];
-
-                  // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
-                  //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
-                  //     if (
-                  //       board[xIndex + i] &&
-                  //       board[xIndex + i][zIndex + j] &&
-                  //       selectedBlock.userData.layout[i][j]
-                  //     ) {
-                  //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
-                  //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
-                  //     }
-                  //   }
-                  // }
-                  // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
-                  // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
-
-                  // show the hint
-                  if (canDrop(selectedBlock, xIndex, zIndex)) {
-                    hintBlock = selectedBlock.clone();
-
-                    hintBlock.position.copy(boardSquareMeshHovered.position);
-                    hintBlock.position.x = hintBlock.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
-                    hintBlock.position.z = hintBlock.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
-                    hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH / 2;
-
-                    // if (selectedBlock.isUpsideDown) {
-                    //   hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
-                    // }
-
-                    scene.add(hintBlock);
-                  }
-                    
-                }
-
-              }
-
+            if (intersect.object.parent) {
+              intersected = intersect.object.parent;
             } else {
-              // TODO: Transform an object when hovered
-
-              intersects = raycaster.intersectObjects(blocks, true);
-
-              if (intersects.length > 0) {
-                intersect = intersects[0];
-
-                if (intersect.object.parent) {
-                  intersected = intersect.object.parent;
-                } else {
-                  intersected = intersect.object;
-                }
-
-                container.style.cursor = 'move';
-
-              } else {
-                intersected = null;
-
-                container.style.cursor = 'auto';
-              }
-            }
-              
-          }
-
-          function mousedown(e) {
-            var
-              intersect,
-              intersects;
-
-            e.preventDefault();
-
-            // NOTE: mouse.x and mouse.y should already be set because it was set above
-
-            raycaster.setFromCamera(mouse, camera);
-
-            intersects = raycaster.intersectObjects(blocks, true);
-
-            if (intersects.length > 0) {
-              intersect = intersects[0];
-
-              // disable zoom, pan, etc. while dragging
-              controls.enabled = false;
-
-              // TODO: Disable movement if 
-              // a) it isn't your blocks or 
-              // b) it isn't your turn to move the shared one or
-              // c) you already dropped your block
-
-              selectedSquare = intersect.object;
-              if (intersect.object.parent) {
-                selectedBlock = intersect.object.parent;
-              }
-
-              if (raycaster.ray.intersectPlane(plane, intersection)) {
-                offset.copy(intersection).sub(selectedBlock.position);
-              }
+              intersected = intersect.object;
             }
 
             container.style.cursor = 'move';
+
+          } else {
+            intersected = null;
+
+            container.style.cursor = 'auto';
+          }
+        }
+          
+      }
+
+      function mousedown(e) {
+        var
+          intersect,
+          intersects;
+
+        e.preventDefault();
+
+        // NOTE: mouse.x and mouse.y should already be set because it was set above
+
+        raycaster.setFromCamera(mouse, camera);
+
+        intersects = raycaster.intersectObjects(blocks, true);
+
+        if (intersects.length > 0) {
+          intersect = intersects[0];
+
+          // disable zoom, pan, etc. while dragging
+          controls.enabled = false;
+
+          // TODO: Disable movement if 
+          // a) it isn't your blocks or 
+          // b) it isn't your turn to move the shared one or
+          // c) you already dropped your block
+
+          selectedSquare = intersect.object;
+          if (intersect.object.parent) {
+            selectedBlock = intersect.object.parent;
           }
 
-          function mouseup(e) {
-            var
-              i, il,
-              layoutWidth,
-              layoutHeight,
-              originalPosition,
-              originalRotation;
+          if (raycaster.ray.intersectPlane(plane, intersection)) {
+            offset.copy(intersection).sub(selectedBlock.position);
+          }
+        }
 
-            e.preventDefault();
+        container.style.cursor = 'move';
+      }
 
-            controls.enabled = true;
+      function mouseup(e) {
+        var
+          i, il,
+          layoutWidth,
+          layoutHeight,
+          originalPosition,
+          originalRotation;
 
+        e.preventDefault();
+
+        controls.enabled = true;
+
+        if (
+          selectedSquare &&
+          selectedBlock
+        ) {
+          if (canDrop(selectedBlock, xIndex, zIndex)) {
+
+            boardSquareMeshHovered = board[xIndex][zIndex];
+
+            for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+              for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+                if (selectedBlock.userData.layout[i][j]) {
+                  board[xIndex + i][zIndex + j].userData.block = selectedBlock;
+                }
+              }
+            }
+
+            // animate
+            // selectedBlock.position.x = boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+            // selectedBlock.position.z = boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+            // selectedBlock.position.y = boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2;
+            layoutWidth = selectedBlock.userData.layout.length;
+            layoutHeight = selectedBlock.userData.layout[0].length;
+
+            dropTween = new TWEEN.Tween(selectedBlock.position)
+              .to({
+                  x: boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2),
+                  z: boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2),
+                  y: boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2
+                }, 200)
+              .easing(TWEEN.Easing.Bounce.Out)
+              .onComplete(function () {
+                dropTween = null;
+              })
+              .start();
+
+            blocks.splice(blocks.indexOf(selectedBlock), 1);
+
+            selectedSquare = null;
+            selectedBlock = null;
+
+            scene.remove(hintBlock);
+
+          } else {
+
+            // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
             if (
-              selectedSquare &&
-              selectedBlock
+              (
+                selectedBlock.position.x > 2.2 &&
+                selectedBlock.position.x < 8.0
+              ) && (
+                selectedBlock.position.z < 2.4 &&
+                selectedBlock.position.z > -2.4
+              )
             ) {
-              if (canDrop(selectedBlock, xIndex, zIndex)) {
-
-                boardSquareMeshHovered = board[xIndex][zIndex];
-
-                for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
-                  for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
-                    if (selectedBlock.userData.layout[i][j]) {
-                      board[xIndex + i][zIndex + j].userData.block = selectedBlock;
-                    }
-                  }
-                }
-
-                // animate
-                // selectedBlock.position.x = boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
-                // selectedBlock.position.z = boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
-                // selectedBlock.position.y = boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2;
-                layoutWidth = selectedBlock.userData.layout.length;
-                layoutHeight = selectedBlock.userData.layout[0].length;
-
-                dropTween = new TWEEN.Tween(selectedBlock.position)
-                  .to({
-                      x: boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2),
-                      z: boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2),
-                      y: boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2
-                    }, 200)
-                  .easing(TWEEN.Easing.Bounce.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
-
-                blocks.splice(blocks.indexOf(selectedBlock), 1);
-
-                selectedSquare = null;
-                selectedBlock = null;
-
-                scene.remove(hintBlock);
-
-              } else {
-
-                // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
-                if (
-                  (
-                    selectedBlock.position.x > 2.2 &&
-                    selectedBlock.position.x < 8.0
-                  ) && (
-                    selectedBlock.position.z < 2.4 &&
-                    selectedBlock.position.z > -2.4
-                  )
-                ) {
-                  selectedBlock.startPosition.x = selectedBlock.position.x;
-                  selectedBlock.startPosition.z = selectedBlock.position.z;
-                  selectedBlock.startRotation = selectedBlock.rotation;
-                }
-
-                // move it back to original position and rotation
-                originalPosition = selectedBlock.startPosition;
-                originalRotation = selectedBlock.startRotation;
-                
-                dropTween = new TWEEN.Tween(selectedBlock.position)
-                  .to({
-                      x: originalPosition.x,
-                      z: originalPosition.z,
-                      y: originalPosition.y
-                    }, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
-
-                new TWEEN.Tween(selectedBlock.rotation)
-                  .to({
-                      y: originalRotation.y,
-                      z: originalRotation.z
-                    }, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
-              }
+              selectedBlock.startPosition.x = selectedBlock.position.x;
+              selectedBlock.startPosition.z = selectedBlock.position.z;
+              selectedBlock.startRotation = selectedBlock.rotation;
             }
 
-            if (intersected) {
-              selectedSquare = null;
-              selectedBlock = null;
-            }
-          }
-
-          function keydown(e) {
-            var
-              xRotation,
-              zRotation,
-              yRotation,
-              blockReference;
-
-            e.preventDefault();
-
-            if (selectedBlock && !rotationTween) {
-
-              // maintain a referenced to the block
-              // in case in the middle of the tween the
-              // selectedBlock gets dereferenced by letting
-              // go of the mousedown
-              blockReference = selectedBlock;
-
-              // left
-              if (e.keyCode === 37) {
-
-                blockReference.isRotated = !blockReference.isRotated;
-                blockReference.userData.layout = rotateClockwise(blockReference.userData.layout);
-
-                // animation
-                yRotation = blockReference.rotation.y;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({y: yRotation + Math.PI/2}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // up
-              } else if (e.keyCode === 38) {
-
-                blockReference.isUpsideDown = !blockReference.isUpsideDown;
-                if (blockReference.isRotated) {
-                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
-                } else {
-                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
-                }
-
-                // animation
-                zRotation = blockReference.rotation.z;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({z: zRotation + Math.PI}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // right
-              } else if (e.keyCode === 39) {
-
-                blockReference.isRotated = !blockReference.isRotated;
-                blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
-
-                // animation
-                yRotation = blockReference.rotation.y;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({y: yRotation - Math.PI/2}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // down
-              } else if (e.keyCode === 40) {
-
-                blockReference.isUpsideDown = !blockReference.isUpsideDown;
-                if (blockReference.isRotated) {
-                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
-                } else {
-                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
-                }
-
-                // animation
-                zRotation = blockReference.rotation.z;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({z: zRotation - Math.PI}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-              }
-              
-            }
-
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function rotateClockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-              for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function rotateCounterclockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-              for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function flipVertical(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-              for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function flipHorizontal(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-              for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          function canDrop(block, xIndex, zIndex) {
-            var
-              i, il,
-              j, jl,
-              layout = block.userData.layout,
-              layoutWidth = layout.length,
-              layoutHeight = layout[0].length,
-              onBoard = true,
-              squaresOpen = true,
-              touchingFace = false,
-              touchingCorner = false;
+            // move it back to original position and rotation
+            originalPosition = selectedBlock.startPosition;
+            originalRotation = selectedBlock.startRotation;
             
-            // square on board, square open
-            for (i = 0, il = layoutWidth; i < il; i++) {
-              for (j = 0, jl = layoutHeight; j < jl; j++) {
+            dropTween = new TWEEN.Tween(selectedBlock.position)
+              .to({
+                  x: originalPosition.x,
+                  z: originalPosition.z,
+                  y: originalPosition.y
+                }, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                dropTween = null;
+              })
+              .start();
 
-                // is this square on the board?
-                if (
-                  !board[xIndex + i] ||
-                  !board[xIndex + i][zIndex + j]
-                ) {
-                  onBoard = false;
-                }
+            new TWEEN.Tween(selectedBlock.rotation)
+              .to({
+                  y: originalRotation.y,
+                  z: originalRotation.z
+                }, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                dropTween = null;
+              })
+              .start();
+          }
+        }
 
-                // is this square open?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  board[xIndex + i][zIndex + j].userData.block &&
-                  layout[i][j]
-                ) {
-                  squaresOpen = false;
-                  break;
-                }
+        if (intersected) {
+          selectedSquare = null;
+          selectedBlock = null;
+        }
+      }
 
-                // is a touching the corner square?
-                if (
-                  (
-                    (
-                      (xIndex + i) === 0 ||
-                      (xIndex + i) === 19 // board.length
-                    ) && (
-                      (zIndex + j) === 0 ||
-                      (zIndex + j) === 19 // board.length
-                    )
-                    
-                  ) && 
-                  layout[i] &&
-                  layout[i][j]
-                ) {
-                  touchingCorner = true;
-                }
+      function keydown(e) {
+        var
+          xRotation,
+          zRotation,
+          yRotation,
+          blockReference;
 
-                // is it touching another corner of a square that is the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?                  
-                  (
-                    // top left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom left
-                    ) || (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingCorner = true;
-                }
+        e.preventDefault();
 
-                // is the block touching up against another block of the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?
-                  (
-                    // left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j] &&
-                      board[xIndex + i - 1][zIndex + j].userData.block &&
-                      board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j] &&
-                      board[xIndex + i + 1][zIndex + j].userData.block &&
-                      board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j - 1] &&
-                      board[xIndex + i][zIndex + j - 1].userData.block &&
-                      board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j + 1] &&
-                      board[xIndex + i][zIndex + j + 1].userData.block &&
-                      board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingFace = true;
-                }
+        if (selectedBlock && !rotationTween) {
 
-              }
+          // maintain a referenced to the block
+          // in case in the middle of the tween the
+          // selectedBlock gets dereferenced by letting
+          // go of the mousedown
+          blockReference = selectedBlock;
 
-              if (!onBoard || !squaresOpen || touchingFace) {
-                break;
-              }
+          // left
+          if (e.keyCode === 37) {
+
+            blockReference.isRotated = !blockReference.isRotated;
+            blockReference.userData.layout = rotateClockwise(blockReference.userData.layout);
+
+            // animation
+            yRotation = blockReference.rotation.y;
+
+            rotationTween = new TWEEN.Tween(blockReference.rotation)
+              .to({y: yRotation + Math.PI/2}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+                blockReference = null;
+              })
+              .start();
+
+          // up
+          } else if (e.keyCode === 38) {
+
+            blockReference.isUpsideDown = !blockReference.isUpsideDown;
+            if (blockReference.isRotated) {
+              blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+            } else {
+              blockReference.userData.layout = flipVertical(blockReference.userData.layout);
             }
 
-            return onBoard && squaresOpen && !touchingFace && touchingCorner;
+            // animation
+            zRotation = blockReference.rotation.z;
+
+            rotationTween = new TWEEN.Tween(blockReference.rotation)
+              .to({z: zRotation + Math.PI}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+                blockReference = null;
+              })
+              .start();
+
+          // right
+          } else if (e.keyCode === 39) {
+
+            blockReference.isRotated = !blockReference.isRotated;
+            blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
+
+            // animation
+            yRotation = blockReference.rotation.y;
+
+            rotationTween = new TWEEN.Tween(blockReference.rotation)
+              .to({y: yRotation - Math.PI/2}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+                blockReference = null;
+              })
+              .start();
+
+          // down
+          } else if (e.keyCode === 40) {
+
+            blockReference.isUpsideDown = !blockReference.isUpsideDown;
+            if (blockReference.isRotated) {
+              blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+            } else {
+              blockReference.userData.layout = flipVertical(blockReference.userData.layout);
+            }
+
+            // animation
+            zRotation = blockReference.rotation.z;
+
+            rotationTween = new TWEEN.Tween(blockReference.rotation)
+              .to({z: zRotation - Math.PI}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+                blockReference = null;
+              })
+              .start();
+          }
+          
+        }
+
+      }
+
+      // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+      //   blockDefinition = blockDefinitions[k];
+
+      //   console.log('BEFORE');
+      //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+      //   console.log('AFTER');
+      //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
+      //   console.log('\n\n\n');
+      // }
+
+      function rotateClockwise(layout) {
+        var 
+          layoutRow,
+          layoutRowLength = layout.length,
+          layoutColumn,
+          layoutColumnLength = layout[0].length,
+          row,
+          newLayoutRow = 0,
+          newLayoutColumn = 0,
+          newLayout = [];
+
+        for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+          for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+            if (!newLayout[newLayoutRow]) {
+              newLayout[newLayoutRow] = [];
+            }
+            newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+            newLayoutColumn++;
+          }
+          newLayoutRow++;
+          newLayoutColumn = 0;
+        }
+
+        return newLayout;
+      }
+
+      // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+      //   blockDefinition = blockDefinitions[k];
+
+      //   console.log('BEFORE');
+      //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+      //   console.log('AFTER');
+      //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
+      //   console.log('\n\n\n');
+      // }
+
+      function rotateCounterclockwise(layout) {
+        var 
+          layoutRow,
+          layoutRowLength = layout.length,
+          layoutColumn,
+          layoutColumnLength = layout[0].length,
+          row,
+          newLayoutRow = 0,
+          newLayoutColumn = 0,
+          newLayout = [];
+
+        for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+          for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+            if (!newLayout[newLayoutRow]) {
+              newLayout[newLayoutRow] = [];
+            }
+            newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+            newLayoutColumn++;
+          }
+          newLayoutRow++;
+          newLayoutColumn = 0;
+        }
+
+        return newLayout;
+      }
+
+      // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+      //   blockDefinition = blockDefinitions[k];
+
+      //   console.log('BEFORE');
+      //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+      //   console.log('AFTER');
+      //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
+      //   console.log('\n\n\n');
+      // }
+
+      function flipVertical(layout) {
+        var 
+          layoutRow,
+          layoutRowLength = layout.length,
+          layoutColumn,
+          layoutColumnLength = layout[0].length,
+          row,
+          newLayoutRow = 0,
+          newLayoutColumn = 0,
+          newLayout = [];
+
+        for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+          for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+            if (!newLayout[newLayoutRow]) {
+              newLayout[newLayoutRow] = [];
+            }
+            newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+            newLayoutColumn++;
+          }
+          newLayoutRow++;
+          newLayoutColumn = 0;
+        }
+
+        return newLayout;
+      }
+
+      // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+      //   blockDefinition = blockDefinitions[k];
+
+      //   console.log('BEFORE');
+      //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+      //   console.log('AFTER');
+      //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
+      //   console.log('\n\n\n');
+      // }
+
+      function flipHorizontal(layout) {
+        var 
+          layoutRow,
+          layoutRowLength = layout.length,
+          layoutColumn,
+          layoutColumnLength = layout[0].length,
+          row,
+          newLayoutRow = 0,
+          newLayoutColumn = 0,
+          newLayout = [];
+
+        for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+          for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+            if (!newLayout[newLayoutRow]) {
+              newLayout[newLayoutRow] = [];
+            }
+            newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+            newLayoutColumn++;
+          }
+          newLayoutRow++;
+          newLayoutColumn = 0;
+        }
+
+        return newLayout;
+      }
+
+      function canDrop(block, xIndex, zIndex) {
+        var
+          i, il,
+          j, jl,
+          layout = block.userData.layout,
+          layoutWidth = layout.length,
+          layoutHeight = layout[0].length,
+          onBoard = true,
+          squaresOpen = true,
+          touchingFace = false,
+          touchingCorner = false;
+        
+        // square on board, square open
+        for (i = 0, il = layoutWidth; i < il; i++) {
+          for (j = 0, jl = layoutHeight; j < jl; j++) {
+
+            // is this square on the board?
+            if (
+              !board[xIndex + i] ||
+              !board[xIndex + i][zIndex + j]
+            ) {
+              onBoard = false;
+            }
+
+            // is this square open?
+            if (
+              board[xIndex + i] &&
+              board[xIndex + i][zIndex + j] &&
+              board[xIndex + i][zIndex + j].userData.block &&
+              layout[i][j]
+            ) {
+              squaresOpen = false;
+              break;
+            }
+
+            // is a touching the corner square?
+            if (
+              (
+                (
+                  (xIndex + i) === 0 ||
+                  (xIndex + i) === 19 // board.length
+                ) && (
+                  (zIndex + j) === 0 ||
+                  (zIndex + j) === 19 // board.length
+                )
+                
+              ) && 
+              layout[i] &&
+              layout[i][j]
+            ) {
+              touchingCorner = true;
+            }
+
+            // is it touching another corner of a square that is the same color?
+            if (
+              board[xIndex + i] &&
+              board[xIndex + i][zIndex + j] &&
+              layout[i] &&
+              layout[i][j] &&
+              // touching on one of the corners?                  
+              (
+                // top left
+                (
+                  board[xIndex + i - 1] &&
+                  board[xIndex + i - 1][zIndex + j - 1] &&
+                  board[xIndex + i - 1][zIndex + j - 1].userData.block &&
+                  board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // top right
+                ) || (
+                  board[xIndex + i + 1] &&
+                  board[xIndex + i + 1][zIndex + j - 1] &&
+                  board[xIndex + i + 1][zIndex + j - 1].userData.block &&
+                  board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // bottom left
+                ) || (
+                  board[xIndex + i - 1] &&
+                  board[xIndex + i - 1][zIndex + j + 1] &&
+                  board[xIndex + i - 1][zIndex + j + 1].userData.block &&
+                  board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // bottom right
+                ) || (
+                  board[xIndex + i + 1] &&
+                  board[xIndex + i + 1][zIndex + j + 1] &&
+                  board[xIndex + i + 1][zIndex + j + 1].userData.block &&
+                  board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                )
+              )
+            ) {
+              touchingCorner = true;
+            }
+
+            // is the block touching up against another block of the same color?
+            if (
+              board[xIndex + i] &&
+              board[xIndex + i][zIndex + j] &&
+              layout[i] &&
+              layout[i][j] &&
+              // touching on one of the corners?
+              (
+                // left
+                (
+                  board[xIndex + i - 1] &&
+                  board[xIndex + i - 1][zIndex + j] &&
+                  board[xIndex + i - 1][zIndex + j].userData.block &&
+                  board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // right
+                ) || (
+                  board[xIndex + i + 1] &&
+                  board[xIndex + i + 1][zIndex + j] &&
+                  board[xIndex + i + 1][zIndex + j].userData.block &&
+                  board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // top
+                ) || (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j - 1] &&
+                  board[xIndex + i][zIndex + j - 1].userData.block &&
+                  board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                // bottom
+                ) || (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j + 1] &&
+                  board[xIndex + i][zIndex + j + 1].userData.block &&
+                  board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
+                    block.userData.colorAgent
+                )
+              )
+            ) {
+              touchingFace = true;
+            }
+
           }
 
-          renderer.domElement.addEventListener('mousemove', mousemove, false);
-          renderer.domElement.addEventListener('mousedown', mousedown, false);
-          renderer.domElement.addEventListener('mouseup', mouseup, false);
-          document.addEventListener('keydown', keydown, false);
-
-          //------------------------------------------------------------------
-          // Animate and Render
-          //------------------------------------------------------------------
-          function animate(time) {
-            requestAnimationFrame(animate);
-
-            TWEEN.update(time);
-            render();
+          if (!onBoard || !squaresOpen || touchingFace) {
+            break;
           }
+        }
 
-          function render() {
-            controls.update();
-            renderer.render(scene,camera);
-          }
+        return onBoard && squaresOpen && !touchingFace && touchingCorner;
+      }
 
-          container.appendChild(renderer.domElement);
+      renderer.domElement.addEventListener('mousemove', mousemove, false);
+      renderer.domElement.addEventListener('mousedown', mousedown, false);
+      renderer.domElement.addEventListener('mouseup', mouseup, false);
+      document.addEventListener('keydown', keydown, false);
 
-          animate();
-        });
+      //------------------------------------------------------------------
+      // Animate and Render
+      //------------------------------------------------------------------
+      function animate(time) {
+        requestAnimationFrame(animate);
 
-      
+        TWEEN.update(time);
+        render();
+      }
+
+      function render() {
+        controls.update();
+        renderer.render(scene,camera);
+      }
+
+      container.appendChild(renderer.domElement);
+
+      animate();
 
     </script>
   </body>

@@ -1994,16 +1994,17 @@ define('app', [
           //------------------------------------------------------------------
           // Animate and Render
           //------------------------------------------------------------------
+
+          function render() {
+            controls.update();
+            renderer.render(scene,camera);
+          }
+
           function animate(time) {
             requestAnimationFrame(animate);
 
             TWEEN.update(time);
             render();
-          }
-
-          function render() {
-            controls.update();
-            renderer.render(scene,camera);
           }
 
           container.appendChild(renderer.domElement);

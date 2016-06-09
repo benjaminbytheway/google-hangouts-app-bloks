@@ -105,6 +105,7 @@ gulp.task('js', [
               define: true,
               gapi: true,
               THREE: true,
+              TWEEN: true
             }
           }))
           .pipe(jshint.reporter('default', { verbose: true }))

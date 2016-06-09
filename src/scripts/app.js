@@ -704,16 +704,15 @@ define('app', [
             controls,
             loader = new THREE.JSONLoader(),
             // game objects
-            tableMesh,
-            tableGeometry,
-            tableMaterial,
+            // tableMesh,
+            // tableGeometry,
+            // tableMaterial,
             boardSquareMesh,
             boardSquareGeometryTemplate,
             boardSquareMaterial,
             boardBaseGeometry,
             boardBaseMaterial,
             boardBaseMesh,
-            group,
             squareMesh,
             squareGeometryTemplate,
             squareMaterial,
@@ -942,14 +941,305 @@ define('app', [
             // dimensions
             WIDTH = container.offsetWidth,
             HEIGHT = container.offsetHeight,
+            // TABLE_WIDTH = 10,
+            // TABLE_HEIGHT = 10,
             SQUARE_WIDTH = 0.2,
             SQUARE_HEIGHT = 0.2,
             SQUARE_DEPTH = 0.04,
             BOARD_WIDTH_IN_SQUARES = 20,
             BOARD_HEIGHT_IN_SQUARES = 20,
-            BOARD_BASE_DEPTH = 0.6,
-            TABLE_WIDTH = 10,
-            TABLE_HEIGHT = 10;
+            BOARD_BASE_DEPTH = 0.6;
+
+          //------------------------------------------------------------------
+          // util functions
+          //------------------------------------------------------------------
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function rotateClockwise(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+              for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function rotateCounterclockwise(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+              for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function flipVertical(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+              for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+          //   blockDefinition = blockDefinitions[k];
+
+          //   console.log('BEFORE');
+          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+          //   console.log('AFTER');
+          //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
+          //   console.log('\n\n\n');
+          // }
+
+          function flipHorizontal(layout) {
+            var 
+              layoutRow,
+              layoutRowLength = layout.length,
+              layoutColumn,
+              layoutColumnLength = layout[0].length,
+              newLayoutRow = 0,
+              newLayoutColumn = 0,
+              newLayout = [];
+
+            for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+              for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+                if (!newLayout[newLayoutRow]) {
+                  newLayout[newLayoutRow] = [];
+                }
+                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+                newLayoutColumn++;
+              }
+              newLayoutRow++;
+              newLayoutColumn = 0;
+            }
+
+            return newLayout;
+          }
+
+          function canDrop(block, xIndex, zIndex) {
+            var
+              i, il,
+              j, jl,
+              layout = block.userData.layout,
+              layoutWidth = layout.length,
+              layoutHeight = layout[0].length,
+              onBoard = true,
+              squaresOpen = true,
+              touchingFace = false,
+              touchingCorner = false;
+            
+            // square on board, square open
+            for (i = 0, il = layoutWidth; i < il; i++) {
+              for (j = 0, jl = layoutHeight; j < jl; j++) {
+
+                // is this square on the board?
+                if (
+                  !board[xIndex + i] ||
+                  !board[xIndex + i][zIndex + j]
+                ) {
+                  onBoard = false;
+                }
+
+                // is this square open?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  board[xIndex + i][zIndex + j].userData.block &&
+                  layout[i][j]
+                ) {
+                  squaresOpen = false;
+                  break;
+                }
+
+                // is a touching the corner square?
+                if (
+                  (
+                    (
+                      (xIndex + i) === 0 ||
+                      (xIndex + i) === 19 // board.length
+                    ) && (
+                      (zIndex + j) === 0 ||
+                      (zIndex + j) === 19 // board.length
+                    )
+                    
+                  ) && 
+                  layout[i] &&
+                  layout[i][j]
+                ) {
+                  touchingCorner = true;
+                }
+
+                // is it touching another corner of a square that is the same color?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  layout[i] &&
+                  layout[i][j] &&
+                  // touching on one of the corners?                  
+                  (
+                    // top left
+                    (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j - 1] &&
+                      board[xIndex + i - 1][zIndex + j - 1].userData.block &&
+                      board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // top right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j - 1] &&
+                      board[xIndex + i + 1][zIndex + j - 1].userData.block &&
+                      board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom left
+                    ) || (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j + 1] &&
+                      board[xIndex + i - 1][zIndex + j + 1].userData.block &&
+                      board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j + 1] &&
+                      board[xIndex + i + 1][zIndex + j + 1].userData.block &&
+                      board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    )
+                  )
+                ) {
+                  touchingCorner = true;
+                }
+
+                // is the block touching up against another block of the same color?
+                if (
+                  board[xIndex + i] &&
+                  board[xIndex + i][zIndex + j] &&
+                  layout[i] &&
+                  layout[i][j] &&
+                  // touching on one of the corners?
+                  (
+                    // left
+                    (
+                      board[xIndex + i - 1] &&
+                      board[xIndex + i - 1][zIndex + j] &&
+                      board[xIndex + i - 1][zIndex + j].userData.block &&
+                      board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // right
+                    ) || (
+                      board[xIndex + i + 1] &&
+                      board[xIndex + i + 1][zIndex + j] &&
+                      board[xIndex + i + 1][zIndex + j].userData.block &&
+                      board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // top
+                    ) || (
+                      board[xIndex + i] &&
+                      board[xIndex + i][zIndex + j - 1] &&
+                      board[xIndex + i][zIndex + j - 1].userData.block &&
+                      board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    // bottom
+                    ) || (
+                      board[xIndex + i] &&
+                      board[xIndex + i][zIndex + j + 1] &&
+                      board[xIndex + i][zIndex + j + 1].userData.block &&
+                      board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
+                        block.userData.colorAgent
+                    )
+                  )
+                ) {
+                  touchingFace = true;
+                }
+
+              }
+
+              if (!onBoard || !squaresOpen || touchingFace) {
+                break;
+              }
+            }
+
+            return onBoard && squaresOpen && !touchingFace && touchingCorner;
+          }
 
           //------------------------------------------------------------------
           // renderer
@@ -1146,16 +1436,16 @@ define('app', [
           board = [];
           //boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
           boardSquareGeometryTemplate = loader.parse({
-            "metadata": {},
-            "scale" : 1.000000,
-            "materials": [],
-            "vertices": [-0.100000,0.000000,0.100000,-0.100000,0.010000,0.100000,-0.100000,0.000000,-0.100000,-0.100000,0.010000,-0.100000,0.100000,0.000000,0.100000,0.100000,0.010000,0.100000,0.100000,0.000000,-0.100000,0.100000,0.010000,-0.100000,0.097500,0.010000,0.097500,-0.097500,0.010000,0.097500,0.097500,0.010000,-0.097500,-0.097500,0.010000,-0.097500,0.095000,0.000000,0.095000,-0.095000,0.000000,0.095000,0.095000,0.000000,-0.095000,-0.095000,0.000000,-0.095000],
-            "morphTargets": [],
-            "morphColors": [],
-            "normals": [-1,0,0,0,0,-1,1,0,0,0,0,1,0,-1,0,0,1,0,-0.9701,0.2425,0,0,0.2425,0.9701,0,0.2425,-0.9701,0.9701,0.2425,0],
-            "colors": [],
-            "uvs": [[]],
-            "faces": [35,1,3,2,0,0,0,0,0,0,35,3,7,6,2,0,1,1,1,1,35,7,5,4,6,0,2,2,2,2,35,5,1,0,4,0,3,3,3,3,35,0,2,6,4,0,4,4,4,4,35,9,11,3,1,0,5,5,5,5,35,5,8,9,1,0,5,5,5,5,35,5,7,10,8,0,5,5,5,5,35,8,10,14,12,0,6,6,6,6,35,10,7,3,11,0,5,5,5,5,35,12,14,15,13,0,5,5,5,5,35,10,11,15,14,0,7,7,7,7,35,9,8,12,13,0,8,8,8,8,35,11,9,13,15,0,9,9,9,9]
+            metadata: {},
+            scale : 1.000000,
+            materials: [],
+            vertices: [-0.100000,0.000000,0.100000,-0.100000,0.010000,0.100000,-0.100000,0.000000,-0.100000,-0.100000,0.010000,-0.100000,0.100000,0.000000,0.100000,0.100000,0.010000,0.100000,0.100000,0.000000,-0.100000,0.100000,0.010000,-0.100000,0.097500,0.010000,0.097500,-0.097500,0.010000,0.097500,0.097500,0.010000,-0.097500,-0.097500,0.010000,-0.097500,0.095000,0.000000,0.095000,-0.095000,0.000000,0.095000,0.095000,0.000000,-0.095000,-0.095000,0.000000,-0.095000],
+            morphTargets: [],
+            morphColors: [],
+            normals: [-1,0,0,0,0,-1,1,0,0,0,0,1,0,-1,0,0,1,0,-0.9701,0.2425,0,0,0.2425,0.9701,0,0.2425,-0.9701,0.9701,0.2425,0],
+            colors: [],
+            uvs: [[]],
+            faces: [35,1,3,2,0,0,0,0,0,0,35,3,7,6,2,0,1,1,1,1,35,7,5,4,6,0,2,2,2,2,35,5,1,0,4,0,3,3,3,3,35,0,2,6,4,0,4,4,4,4,35,9,11,3,1,0,5,5,5,5,35,5,8,9,1,0,5,5,5,5,35,5,7,10,8,0,5,5,5,5,35,8,10,14,12,0,6,6,6,6,35,10,7,3,11,0,5,5,5,5,35,12,14,15,13,0,5,5,5,5,35,10,11,15,14,0,7,7,7,7,35,9,8,12,13,0,8,8,8,8,35,11,9,13,15,0,9,9,9,9]
           }).geometry;
 
           for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
@@ -1240,15 +1530,15 @@ define('app', [
                     //squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
                     squareGeometryTemplate = loader.parse({
                       metadata: {},
-                      "scale" : 1.000000,
-                      "materials": [],
-                      "vertices": [0.100000,0.010000,-0.100000,-0.100000,0.010000,0.100000,0.100000,0.010000,0.100000,-0.100000,0.010000,-0.100000,-0.100000,0.030000,0.100000,0.100000,0.030000,0.100000,-0.100000,0.030000,-0.100000,0.100000,0.030000,-0.100000,-0.092500,0.030000,0.092500,-0.092500,0.030000,-0.092500,0.092500,0.030000,0.092500,0.092500,0.030000,-0.092500,-0.092500,0.040000,0.092500,-0.092500,0.040000,-0.092500,0.092500,0.040000,0.092500,0.092500,0.040000,-0.092500,-0.092500,0.010000,0.092500,0.092500,0.010000,0.092500,-0.092500,0.010000,-0.092500,0.092500,0.010000,-0.092500,-0.092500,0.000000,0.092500,0.092500,0.000000,0.092500,-0.092500,0.000000,-0.092500,0.092500,0.000000,-0.092500,-0.065000,0.040000,0.065000,-0.065000,0.040000,-0.065000,0.065000,0.040000,0.065000,0.065000,0.040000,-0.065000,-0.065000,0.030000,0.065000,-0.065000,0.030000,-0.065000,0.065000,0.030000,0.065000,0.065000,0.030000,-0.065000,-0.065000,0.000000,0.065000,0.065000,0.000000,0.065000,-0.065000,0.000000,-0.065000,0.065000,0.000000,-0.065000,-0.065000,0.010000,0.065000,0.065000,0.010000,0.065000,-0.065000,0.010000,-0.065000,0.065000,0.010000,-0.065000],
-                      "morphTargets": [],
-                      "morphColors": [],
-                      "normals": [0,0,-1,0,0,1,1,0,0,-1,0,0,0,1,0,0,-1,0],
-                      "colors": [],
-                      "uvs": [[]],
-                      "faces": [35,0,3,6,7,0,0,0,0,0,35,1,2,5,4,0,1,1,1,1,35,2,0,7,5,0,2,2,2,2,35,3,1,4,6,0,3,3,3,3,35,9,11,7,6,0,4,4,4,4,35,4,8,9,6,0,4,4,4,4,35,4,5,10,8,0,4,4,4,4,35,11,9,13,15,0,0,0,0,0,35,10,5,7,11,0,4,4,4,4,35,10,11,15,14,0,2,2,2,2,35,9,8,12,13,0,3,3,3,3,35,8,10,14,12,0,1,1,1,1,35,17,19,0,2,0,5,5,5,5,35,1,16,17,2,0,5,5,5,5,35,1,3,18,16,0,5,5,5,5,35,17,16,20,21,0,1,1,1,1,35,18,3,0,19,0,5,5,5,5,35,16,18,22,20,0,3,3,3,3,35,19,17,21,23,0,2,2,2,2,35,18,19,23,22,0,0,0,0,0,35,25,27,15,13,0,4,4,4,4,35,12,24,25,13,0,4,4,4,4,35,12,14,26,24,0,4,4,4,4,35,24,26,30,28,0,0,0,0,0,35,26,14,15,27,0,4,4,4,4,35,28,30,31,29,0,4,4,4,4,35,26,27,31,30,0,3,3,3,3,35,27,25,29,31,0,1,1,1,1,35,25,24,28,29,0,2,2,2,2,35,33,35,23,21,0,5,5,5,5,35,20,32,33,21,0,5,5,5,5,35,20,22,34,32,0,5,5,5,5,35,33,32,36,37,0,0,0,0,0,35,34,22,23,35,0,5,5,5,5,35,36,38,39,37,0,5,5,5,5,35,32,34,38,36,0,2,2,2,2,35,34,35,39,38,0,1,1,1,1,35,35,33,37,39,0,3,3,3,3]
+                      scale : 1.000000,
+                      materials: [],
+                      vertices: [0.100000,0.010000,-0.100000,-0.100000,0.010000,0.100000,0.100000,0.010000,0.100000,-0.100000,0.010000,-0.100000,-0.100000,0.030000,0.100000,0.100000,0.030000,0.100000,-0.100000,0.030000,-0.100000,0.100000,0.030000,-0.100000,-0.092500,0.030000,0.092500,-0.092500,0.030000,-0.092500,0.092500,0.030000,0.092500,0.092500,0.030000,-0.092500,-0.092500,0.040000,0.092500,-0.092500,0.040000,-0.092500,0.092500,0.040000,0.092500,0.092500,0.040000,-0.092500,-0.092500,0.010000,0.092500,0.092500,0.010000,0.092500,-0.092500,0.010000,-0.092500,0.092500,0.010000,-0.092500,-0.092500,0.000000,0.092500,0.092500,0.000000,0.092500,-0.092500,0.000000,-0.092500,0.092500,0.000000,-0.092500,-0.065000,0.040000,0.065000,-0.065000,0.040000,-0.065000,0.065000,0.040000,0.065000,0.065000,0.040000,-0.065000,-0.065000,0.030000,0.065000,-0.065000,0.030000,-0.065000,0.065000,0.030000,0.065000,0.065000,0.030000,-0.065000,-0.065000,0.000000,0.065000,0.065000,0.000000,0.065000,-0.065000,0.000000,-0.065000,0.065000,0.000000,-0.065000,-0.065000,0.010000,0.065000,0.065000,0.010000,0.065000,-0.065000,0.010000,-0.065000,0.065000,0.010000,-0.065000],
+                      morphTargets: [],
+                      morphColors: [],
+                      normals: [0,0,-1,0,0,1,1,0,0,-1,0,0,0,1,0,0,-1,0],
+                      colors: [],
+                      uvs: [[]],
+                      faces: [35,0,3,6,7,0,0,0,0,0,35,1,2,5,4,0,1,1,1,1,35,2,0,7,5,0,2,2,2,2,35,3,1,4,6,0,3,3,3,3,35,9,11,7,6,0,4,4,4,4,35,4,8,9,6,0,4,4,4,4,35,4,5,10,8,0,4,4,4,4,35,11,9,13,15,0,0,0,0,0,35,10,5,7,11,0,4,4,4,4,35,10,11,15,14,0,2,2,2,2,35,9,8,12,13,0,3,3,3,3,35,8,10,14,12,0,1,1,1,1,35,17,19,0,2,0,5,5,5,5,35,1,16,17,2,0,5,5,5,5,35,1,3,18,16,0,5,5,5,5,35,17,16,20,21,0,1,1,1,1,35,18,3,0,19,0,5,5,5,5,35,16,18,22,20,0,3,3,3,3,35,19,17,21,23,0,2,2,2,2,35,18,19,23,22,0,0,0,0,0,35,25,27,15,13,0,4,4,4,4,35,12,24,25,13,0,4,4,4,4,35,12,14,26,24,0,4,4,4,4,35,24,26,30,28,0,0,0,0,0,35,26,14,15,27,0,4,4,4,4,35,28,30,31,29,0,4,4,4,4,35,26,27,31,30,0,3,3,3,3,35,27,25,29,31,0,1,1,1,1,35,25,24,28,29,0,2,2,2,2,35,33,35,23,21,0,5,5,5,5,35,20,32,33,21,0,5,5,5,5,35,20,22,34,32,0,5,5,5,5,35,33,32,36,37,0,0,0,0,0,35,34,22,23,35,0,5,5,5,5,35,36,38,39,37,0,5,5,5,5,35,32,34,38,36,0,2,2,2,2,35,34,35,39,38,0,1,1,1,1,35,35,33,37,39,0,3,3,3,3]
                     }).geometry;
                     squareMaterial = new THREE.MeshPhongMaterial({
                       color: block.userData.colorAgent.hex,
@@ -1341,11 +1631,10 @@ define('app', [
             var
               intersect,
               intersects,
-              i, il,
-              j, jl,
+              // i, il,
+              // j, jl,
               layoutWidth,
-              layoutHeight,
-              hoverable;
+              layoutHeight;
 
             e.preventDefault();
 
@@ -1598,7 +1887,6 @@ define('app', [
 
           function keydown(e) {
             var
-              xRotation,
               zRotation,
               yRotation,
               blockReference;
@@ -1696,297 +1984,6 @@ define('app', [
               
             }
 
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function rotateClockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-              for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function rotateCounterclockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-              for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function flipVertical(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-              for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function flipHorizontal(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              row,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-              for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          function canDrop(block, xIndex, zIndex) {
-            var
-              i, il,
-              j, jl,
-              layout = block.userData.layout,
-              layoutWidth = layout.length,
-              layoutHeight = layout[0].length,
-              onBoard = true,
-              squaresOpen = true,
-              touchingFace = false,
-              touchingCorner = false;
-            
-            // square on board, square open
-            for (i = 0, il = layoutWidth; i < il; i++) {
-              for (j = 0, jl = layoutHeight; j < jl; j++) {
-
-                // is this square on the board?
-                if (
-                  !board[xIndex + i] ||
-                  !board[xIndex + i][zIndex + j]
-                ) {
-                  onBoard = false;
-                }
-
-                // is this square open?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  board[xIndex + i][zIndex + j].userData.block &&
-                  layout[i][j]
-                ) {
-                  squaresOpen = false;
-                  break;
-                }
-
-                // is a touching the corner square?
-                if (
-                  (
-                    (
-                      (xIndex + i) === 0 ||
-                      (xIndex + i) === 19 // board.length
-                    ) && (
-                      (zIndex + j) === 0 ||
-                      (zIndex + j) === 19 // board.length
-                    )
-                    
-                  ) && 
-                  layout[i] &&
-                  layout[i][j]
-                ) {
-                  touchingCorner = true;
-                }
-
-                // is it touching another corner of a square that is the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?                  
-                  (
-                    // top left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom left
-                    ) || (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingCorner = true;
-                }
-
-                // is the block touching up against another block of the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?
-                  (
-                    // left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j] &&
-                      board[xIndex + i - 1][zIndex + j].userData.block &&
-                      board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j] &&
-                      board[xIndex + i + 1][zIndex + j].userData.block &&
-                      board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j - 1] &&
-                      board[xIndex + i][zIndex + j - 1].userData.block &&
-                      board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j + 1] &&
-                      board[xIndex + i][zIndex + j + 1].userData.block &&
-                      board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingFace = true;
-                }
-
-              }
-
-              if (!onBoard || !squaresOpen || touchingFace) {
-                break;
-              }
-            }
-
-            return onBoard && squaresOpen && !touchingFace && touchingCorner;
           }
 
           renderer.domElement.addEventListener('mousemove', mousemove, false);

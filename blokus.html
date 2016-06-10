@@ -603,6 +603,8 @@
 
           block.startPosition = new THREE.Vector3();
           block.startRotation = new THREE.Vector3();
+          block.upperBoundary = new THREE.Vector3();
+          block.lowerBoundary = new THREE.Vector3();
 
           block.isUpsideDown = false;
           block.isRotated = false;
@@ -612,11 +614,21 @@
             block.startPosition.y = blockDefinition.startPosition.y;
             block.startPosition.z = blockDefinition.startPosition.z;
 
+            block.upperBoundary.x = 8.0;
+            block.lowerBoundary.x = 2.2;
+            block.upperBoundary.z = 2.4;
+            block.lowerBoundary.z = -2.4;
+
             block.startRotation.y = 0;
           } else if (color === 'green') {
             block.startPosition.x = -blockDefinition.startPosition.x;
             block.startPosition.y = blockDefinition.startPosition.y;
             block.startPosition.z = -blockDefinition.startPosition.z;
+
+            block.upperBoundary.x = -2.2;
+            block.lowerBoundary.x = -8.0;
+            block.upperBoundary.z = 2.4;
+            block.lowerBoundary.z = -2.4;
 
             block.startRotation.y = Math.PI;
             block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
@@ -625,6 +637,11 @@
             block.startPosition.y = blockDefinition.startPosition.y;
             block.startPosition.z = blockDefinition.startPosition.x;
 
+            block.upperBoundary.x = 2.4;
+            block.lowerBoundary.x = -2.4;
+            block.upperBoundary.z = 8.0;
+            block.lowerBoundary.z = 2.2;
+
             block.startRotation.y = Math.PI + Math.PI / 2;
             block.userData.layout = rotateCounterclockwise(block.userData.layout);
             block.isRotated = true;
@@ -632,6 +649,11 @@
             block.startPosition.x = blockDefinition.startPosition.z;
             block.startPosition.y = blockDefinition.startPosition.y;
             block.startPosition.z = -blockDefinition.startPosition.x;
+
+            block.upperBoundary.x = 2.4;
+            block.lowerBoundary.x = -2.4;
+            block.upperBoundary.z = -2.2;
+            block.lowerBoundary.z = -8.0;
 
             block.startRotation.y = Math.PI / 2;
             block.userData.layout = rotateClockwise(block.userData.layout);
@@ -875,11 +897,11 @@
             // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
             if (
               (
-                selectedBlock.position.x > 2.2 &&
-                selectedBlock.position.x < 8.0
+                selectedBlock.position.x > selectedBlock.lowerBoundary.x &&
+                selectedBlock.position.x < selectedBlock.upperBoundary.x
               ) && (
-                selectedBlock.position.z < 2.4 &&
-                selectedBlock.position.z > -2.4
+                selectedBlock.position.z > selectedBlock.lowerBoundary.z &&
+                selectedBlock.position.z < selectedBlock.upperBoundary.z
               )
             ) {
               selectedBlock.startPosition.x = selectedBlock.position.x;

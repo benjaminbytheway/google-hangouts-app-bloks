@@ -100,10 +100,10 @@ define('app', [
           // e.state
 
           var
-            state,
-            key,
-            value,
-            metadata;
+            // key,
+            // value,
+            // metadata,
+            state;
           
           state = parseState(e.state);
 
@@ -113,19 +113,6 @@ define('app', [
           // } else {
           //   delete state.writerId;
           // }
-
-          for (key in state) {
-            value = state[key];
-            metadata = e.metadata[key];
-
-            if (key === 'board') {
-              // TODO: 
-              $rootScope.syncBoardWithState();
-            } else if (key === 'blocks') {
-              // TODO: 
-              $rootScope.syncBlocksWithState();
-            }
-          }
 
           // make sure we don't call the submitDelta
           supressSubmitDelta = true;
@@ -137,6 +124,25 @@ define('app', [
           }, 0);
 
           $rootScope.state = state;
+    
+          // special update for three.js
+          if (state.board) {
+            $rootScope.syncBoardWithState();
+          }
+          if (state.blocks) {
+            $rootScope.syncBlocksWithState();
+          }
+
+          // for (key in state) {
+          //   value = state[key];
+          //   metadata = e.metadata[key];
+
+          //   if (key === 'board') {
+          //     $rootScope.syncBoardWithState();
+          //   } else if (key === 'blocks') {
+          //     $rootScope.syncBlocksWithState();
+          //   }
+          // }
 
           // TODO: DEBUGGING (REMOVE)
           window.state = state;
@@ -700,12 +706,20 @@ define('app', [
         //--------------------------------------------------------------------
         // board
         if (!$rootScope.state.board) {
-          $rootScope.state.board = {};
+          $rootScope.state.board = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBoardWithState();
+          }, 100);
         }
 
-        // board
+        // blocks
         if (!$rootScope.state.blocks) {
           $rootScope.state.blocks = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBlocksWithState();
+          }, 100);
         }
 
         var
@@ -1253,6 +1267,138 @@ define('app', [
           return onBoard && squaresOpen && !touchingFace && touchingCorner;
         }
 
+        function getBlockById(id) {
+          var
+            i, il,
+            block;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            if (block.userData.id === id) {
+              return block;
+            }
+          }
+        }
+
+        //------------------------------------------------------------------
+        // state functions
+        //------------------------------------------------------------------
+
+        $rootScope.getBlockById = function (id) {
+          var
+            i, il,
+            block,
+            blocks;
+
+          blocks = $rootScope.state.blocks;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            if (block.id === id) {
+              return block;
+            }
+          }
+        };
+
+        $rootScope.syncBoardWithState = function () {
+          var
+            i, il,
+            j, jl,
+            boardSquare,
+            stateBoard;
+
+          stateBoard = $rootScope.state.board;
+
+          for (i = 0, il = stateBoard.length; i < il; i++) {
+            for (j = 0, jl = stateBoard[i].length; j < jl; j++) {
+              boardSquare = stateBoard[i][j];
+              $rootScope.syncBoardSquare(board[i][j], boardSquare, true);
+            }
+          }
+        };
+
+        $rootScope.syncBoardSquare = function (boardSquare, updateBoardSquare, fromState) {
+
+          // block
+          if (fromState) {
+            boardSquare.userData.block = getBlockById(updateBoardSquare.b);
+          } else {
+            boardSquare.b = updateBoardSquare.userData.block.id;
+          }
+        };
+
+        $rootScope.syncBlocksWithState = function () {
+          var
+            i, il,
+            block,
+            blocks;
+
+          blocks = $rootScope.state.blocks;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          }
+        };
+
+        $rootScope.syncBlock = function (block, blockUpdate, fromState) {
+
+          // layout
+          if (fromState) {
+            block.userData.layout = blockUpdate.l;
+
+            // position
+            block.position.x = blockUpdate.p.x;
+            block.position.y = blockUpdate.p.y;
+            block.position.z = blockUpdate.p.z;
+
+            // rotation
+            block.rotation.x = blockUpdate.r.x;
+            block.rotation.y = blockUpdate.r.y;
+            block.rotation.z = blockUpdate.r.z;
+
+            // startPosition
+            block.startPosition.x = blockUpdate.sp.x;
+            block.startPosition.y = blockUpdate.sp.y;
+            block.startPosition.z = blockUpdate.sp.z;
+
+            // startRotation
+            block.startRotation.x = blockUpdate.sr.x;
+            block.startRotation.y = blockUpdate.sr.y;
+            block.startRotation.z = blockUpdate.sr.z;
+
+            // isRotated
+            block.isRotated = blockUpdate.ir;
+
+          } else {
+            block.l = blockUpdate.userData.layout;
+
+            // position
+            block.p.x = blockUpdate.position.x;
+            block.p.y = blockUpdate.position.y;
+            block.p.z = blockUpdate.position.z;
+
+            // rotation
+            block.r.x = blockUpdate.rotation.x;
+            block.r.y = blockUpdate.rotation.y;
+            block.r.z = blockUpdate.rotation.z;
+
+            // startPosition
+            block.sp.x = blockUpdate.startPosition.x;
+            block.sp.y = blockUpdate.startPosition.y;
+            block.sp.z = blockUpdate.startPosition.z;
+
+            // startRotation
+            block.sr.x = blockUpdate.startRotation.x;
+            block.sr.y = blockUpdate.startRotation.y;
+            block.sr.z = blockUpdate.startRotation.z;
+
+            // isRotated
+            block.ir = blockUpdate.isRotated;
+
+          }
+        };
+
         //------------------------------------------------------------------
         // renderer
         //------------------------------------------------------------------
@@ -1486,6 +1632,16 @@ define('app', [
 
             board[i][j] = boardSquareMesh;
             scene.add(boardSquareMesh);
+
+            // update the state.board if we don't already have everything
+            if (!$rootScope.state.board[i]) {
+              $rootScope.state.board[i] = [];
+            }
+            if (!$rootScope.state.board[i][j]) {
+              $rootScope.state.board[i][j] = {
+                b: null
+              };
+            }
           }
         }
 
@@ -1579,6 +1735,8 @@ define('app', [
 
             block.startPosition = new THREE.Vector3();
             block.startRotation = new THREE.Vector3();
+            block.upperBoundary = new THREE.Vector3();
+            block.lowerBoundary = new THREE.Vector3();
             block.isRotated = false;
 
             if (color === 'blue') {
@@ -1586,11 +1744,21 @@ define('app', [
               block.startPosition.y = blockDefinition.startPosition.y;
               block.startPosition.z = blockDefinition.startPosition.z;
 
+              block.upperBoundary.x = 8.0;
+              block.lowerBoundary.x = 2.2;
+              block.upperBoundary.z = 2.4;
+              block.lowerBoundary.z = -2.4;
+
               block.startRotation.y = 0;
             } else if (color === 'green') {
               block.startPosition.x = -blockDefinition.startPosition.x;
               block.startPosition.y = blockDefinition.startPosition.y;
               block.startPosition.z = -blockDefinition.startPosition.z;
+
+              block.upperBoundary.x = -2.2;
+              block.lowerBoundary.x = -8.0;
+              block.upperBoundary.z = 2.4;
+              block.lowerBoundary.z = -2.4;
 
               block.startRotation.y = Math.PI;
               block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
@@ -1599,6 +1767,11 @@ define('app', [
               block.startPosition.y = blockDefinition.startPosition.y;
               block.startPosition.z = blockDefinition.startPosition.x;
 
+              block.upperBoundary.x = 2.4;
+              block.lowerBoundary.x = -2.4;
+              block.upperBoundary.z = 8.0;
+              block.lowerBoundary.z = 2.2;
+
               block.startRotation.y = Math.PI + Math.PI / 2;
               block.userData.layout = rotateCounterclockwise(block.userData.layout);
               block.isRotated = true;
@@ -1606,6 +1779,11 @@ define('app', [
               block.startPosition.x = blockDefinition.startPosition.z;
               block.startPosition.y = blockDefinition.startPosition.y;
               block.startPosition.z = -blockDefinition.startPosition.x;
+
+              block.upperBoundary.x = 2.4;
+              block.lowerBoundary.x = -2.4;
+              block.upperBoundary.z = -2.2;
+              block.lowerBoundary.z = -8.0;
 
               block.startRotation.y = Math.PI / 2;
               block.userData.layout = rotateClockwise(block.userData.layout);
@@ -1625,33 +1803,37 @@ define('app', [
 
             scene.add(block);
 
-            // update the state.blocks
-            // TODO: Left off here
-            $rootScope.state.blocks.push({
-              id: color + '-' + blockDefinitions.id,
-              layout: block.userData.layout,
-              startPosition: {
-                x: block.startPosition.x,
-                y: block.startPosition.y,
-                z: block.startPosition.z
-              },
-              startRotation: {
-                x: block.startRotation.x,
-                y: block.startRotation.y,
-                z: block.startRotation.z
-              },
-              position: {
-                x: block.position.x,
-                y: block.position.y,
-                z: block.position.z
-              },
-              rotation: {
-                x: block.rotation.x,
-                y: block.rotation.y,
-                z: block.rotation.z
-              },
-              isRotated: block.isRotated
-            });
+            // update the state.blocks if we don't already have everything
+            if (!$rootScope.getBlockById(color + '-' + blockDefinition.id)) {
+
+              $rootScope.state.blocks.push({
+                id: block.userData.id,
+                l: block.userData.layout,
+                sp: {
+                  x: block.startPosition.x,
+                  y: block.startPosition.y,
+                  z: block.startPosition.z
+                },
+                sr: {
+                  x: block.startRotation.x,
+                  y: block.startRotation.y,
+                  z: block.startRotation.z
+                },
+                p: {
+                  x: block.position.x,
+                  y: block.position.y,
+                  z: block.position.z
+                },
+                r: {
+                  x: block.rotation.x,
+                  y: block.rotation.y,
+                  z: block.rotation.z
+                },
+                ir: block.isRotated
+              });
+
+            }
+            
           }
 
         }
@@ -1859,6 +2041,7 @@ define('app', [
                 .easing(TWEEN.Easing.Bounce.Out)
                 .onComplete(function () {
                   dropTween = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
                 })
                 .start();
 
@@ -1874,11 +2057,11 @@ define('app', [
               // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
               if (
                 (
-                  selectedBlock.position.x > 2.2 &&
-                  selectedBlock.position.x < 8.0
+                  selectedBlock.position.x > selectedBlock.lowerBoundary.x &&
+                  selectedBlock.position.x < selectedBlock.upperBoundary.x
                 ) && (
-                  selectedBlock.position.z < 2.4 &&
-                  selectedBlock.position.z > -2.4
+                  selectedBlock.position.z > selectedBlock.lowerBoundary.z &&
+                  selectedBlock.position.z < selectedBlock.upperBoundary.z
                 )
               ) {
                 selectedBlock.startPosition.x = selectedBlock.position.x;
@@ -1899,6 +2082,7 @@ define('app', [
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
                   dropTween = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
                 })
                 .start();
 
@@ -1913,6 +2097,8 @@ define('app', [
                 })
                 .start();
             }
+
+            $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
           }
 
           if (intersected) {
@@ -1952,6 +2138,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
                 })
                 .start();
 
@@ -1973,6 +2160,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
                 })
                 .start();
 
@@ -1991,6 +2179,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
                 })
                 .start();
 
@@ -2012,6 +2201,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
                 })
                 .start();
             }
@@ -2050,20 +2240,11 @@ define('app', [
 
           TWEEN.update(time);
           render();
-          
         }
 
         container.appendChild(renderer.domElement);
 
         animate();
-
-        $rootScope.syncBoardWithState = function () {
-          // TODO:
-        };
-
-        $rootScope.syncBlocksWithState = function () {
-          // TODO:
-        };
 
       }]);
     

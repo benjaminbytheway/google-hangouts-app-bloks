@@ -1278,6 +1278,8 @@ define('app', [
               return block;
             }
           }
+
+          return false;
         }
 
         //------------------------------------------------------------------
@@ -1298,6 +1300,8 @@ define('app', [
               return block;
             }
           }
+
+          return false;
         };
 
         $rootScope.syncBoardWithState = function () {
@@ -1804,7 +1808,8 @@ define('app', [
             scene.add(block);
 
             // update the state.blocks if we don't already have everything
-            if (!$rootScope.getBlockById(color + '-' + blockDefinition.id)) {
+            if (!$rootScope.getBlockById(block.userData.id)) {
+              console.log('didnt find it');
 
               $rootScope.state.blocks.push({
                 id: block.userData.id,
@@ -1832,6 +1837,8 @@ define('app', [
                 ir: block.isRotated
               });
 
+            } else {
+              console.log('found it');
             }
             
           }

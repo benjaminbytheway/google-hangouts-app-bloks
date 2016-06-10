@@ -9,7 +9,7 @@
     <script src="//plus.google.com/hangouts/_/api/v1/hangout.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
     <script src="scripts/require.js" inline></script>
-    <script src="../bower_components/tween.js/src/Tween.js"></script>
+    <script src="../bower_components/tween.js/src/Tween.js" inline></script>
     <script src="../bower_components/three.js/three.js" inline></script>
     <script src="scripts/TrackballControls.js" inline></script>
     <script src="scripts/OBJLoader.js" inline></script>
@@ -153,7 +153,7 @@
       </section>
     </section>
 
-    <section id="stage-3" ng-if="state.game.currentStage === 3">
+    <section id="stage-3" ng-show="state.game.currentStage === 3">
       
       <div id="canvas-container">
         <button id="view-1">View 1</button>

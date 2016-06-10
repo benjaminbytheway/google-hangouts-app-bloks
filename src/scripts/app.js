@@ -57,6 +57,8 @@ define('app', [
 
       // initialize
       .run(['$rootScope', function ($rootScope) {
+        var
+          supressSubmitDelta = false;
 
         // Get my participant
         $rootScope.me = gapi.hangout.getLocalParticipant();
@@ -91,11 +93,11 @@ define('app', [
         //--------------------------------------------------------------------
         // get notifications from others in the hangout
         //--------------------------------------------------------------------
-        gapi.hangout.data.onStateChanged.add(function(event) {
-          // event.addedKeys
-          // event.metadata
-          // event.removedKeys
-          // event.state
+        gapi.hangout.data.onStateChanged.add(function(e) {
+          // e.addedKeys
+          // e.metadata
+          // e.removedKeys
+          // e.state
 
           var
             state,
@@ -103,7 +105,7 @@ define('app', [
             value,
             metadata;
           
-          state = parseState(event.state);
+          state = parseState(e.state);
 
           // If we sent the message, then return
           // if (state.writerId === $rootScope.me.person.id) {
@@ -112,17 +114,27 @@ define('app', [
           //   delete state.writerId;
           // }
 
-          // TODO: Probably will need this in the future
           for (key in state) {
             value = state[key];
-            metadata = event.metadata[key];
+            metadata = e.metadata[key];
 
-            if (key) {
-              // console.log(key + ' updated elsewhere');
-              // console.log(value);
-              // console.log(metadata);
+            if (key === 'board') {
+              // TODO: 
+              $rootScope.syncBoardWithState();
+            } else if (key === 'blocks') {
+              // TODO: 
+              $rootScope.syncBlocksWithState();
             }
           }
+
+          // make sure we don't call the submitDelta
+          supressSubmitDelta = true;
+          // turn this off as soon as you can in case the watcher doesn't trigger
+          setTimeout(function () {
+            if (supressSubmitDelta) {
+              supressSubmitDelta = false;
+            }
+          }, 0);
 
           $rootScope.state = state;
 
@@ -137,16 +149,20 @@ define('app', [
         //--------------------------------------------------------------------
         $rootScope.$watch('state', function (newValue, oldValue, scope) {
           // console.log('---------------------$watch-------------------');
-          // console.log('NEW');
-          // console.log(newValue);
           // console.log('OLD');
           // console.log(oldValue);
+          // console.log('NEW');
+          // console.log(newValue);
 
           // set who is writing
           // $rootScope.state.writerId = $rootScope.me.person.id;
 
           // submit the changes
-          gapi.hangout.data.submitDelta(serializeState($rootScope.state));
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            gapi.hangout.data.submitDelta(serializeState($rootScope.state));
+          }
 
           // TODO: DEBUGGING (REMOVE)
           window.state = $rootScope.state;
@@ -332,8 +348,8 @@ define('app', [
           });
         };
 
-        gapi.hangout.onParticipantsDisabled.add(function (event) {
-          // event.disabledParticipants
+        gapi.hangout.onParticipantsDisabled.add(function (e) {
+          // e.disabledParticipants
 
           var 
             i, l,
@@ -348,8 +364,8 @@ define('app', [
 
           // figure out if the host is leaving
           if ($rootScope.state.host) {
-            for (i = 0, l = event.disabledParticipants.length; i < l; i++) {
-              disabledParticipant = event.disabledParticipants[i];
+            for (i = 0, l = e.disabledParticipants.length; i < l; i++) {
+              disabledParticipant = e.disabledParticipants[i];
 
               // Is the host leaving?
               if (disabledParticipant.person.id === $rootScope.state.host.id) {
@@ -395,8 +411,8 @@ define('app', [
 
           if (shouldHandle) {
 
-            for (i = 0, l = event.disabledParticipants.length; i < l; i++) {
-              disabledParticipant = event.disabledParticipants[i];
+            for (i = 0, l = e.disabledParticipants.length; i < l; i++) {
+              disabledParticipant = e.disabledParticipants[i];
               
               for (j = players.length - 1; j >= 0; j--) {
                 player = players[j];
@@ -487,6 +503,12 @@ define('app', [
               'red': 'Red',
               'green': 'Green',
               'yellow': 'Yellow'
+            },
+            hexColorMap = {
+              blue: 0x0000ff,
+              green: 0x00ff00,
+              yellow: 0xffff00,
+              red: 0xff0000
             };
 
           colors = $rootScope.state.colors;
@@ -497,9 +519,11 @@ define('app', [
             !colors[color]
           ) {
             colors[color] = {
+              color: color,
               type: 1,
               id: $rootScope.me.person.id,
-              label: map[color]
+              label: map[color],
+              hex: hexColorMap[color]
             };
           }
 
@@ -537,11 +561,13 @@ define('app', [
             
             // finally add all of that to the colors object
             colors[color] = {
+              color: color,
               type: 2,
               id: order[0],
               order: order,
               current: 0,
-              label: map[color]
+              label: map[color],
+              hex: hexColorMap[color]
             };
 
           }
@@ -667,603 +693,634 @@ define('app', [
           // NOTE: This will only be run by the host
           
           $rootScope.state.game.currentStage = STAGES.PLAY;
-
-          $rootScope.play();
-          $rootScope.init();
         };
 
         //--------------------------------------------------------------------
         // Stage 3
         //--------------------------------------------------------------------
-        $rootScope.play = function () {
+        // board
+        if (!$rootScope.state.board) {
+          $rootScope.state.board = {};
+        }
 
-          // initialize the board
-          $rootScope.state.board = [];
-        };
+        // board
+        if (!$rootScope.state.blocks) {
+          $rootScope.state.blocks = [];
+        }
 
-        $rootScope.init = function () {
-          var
-            w = window,
-            d = document,
-            container = d.getElementById('canvas-container'),
-            // three
-            scene,
-            camera,
-            view1,
-            view2,
-            view3,
-            renderer,
-            directionalLights,
-            directionalLightCount,
-            ambientLight,
-            raycaster,
-            plane,
-            offset,
-            intersection,
-            mouse,
-            controls,
-            loader = new THREE.JSONLoader(),
-            // game objects
-            // tableMesh,
-            // tableGeometry,
-            // tableMaterial,
-            boardSquareMesh,
-            boardSquareGeometryTemplate,
-            boardSquareMaterial,
-            boardBaseGeometry,
-            boardBaseMaterial,
-            boardBaseMesh,
-            squareMesh,
-            squareGeometryTemplate,
-            squareMaterial,
-            // tweens
-            rotationTween,
-            dropTween,
-            // other
-            i, l,
-            j, jl,
-            k, kl,
-            board,
-            hintBlock,
-            boardSquareMeshHovered,
-            blocks = [],
-            intersected,
-            selectedSquare,
-            selectedBlock,
-            xIndex, zIndex,
-            color,
-            colorAgent,
-            colors = { // TODO: Replace with $rootScope.colors
-              blue: {
-                hex: 0x0000ff
-              }, 
-              green: {
-                hex: 0x00ff00
-              }, 
-              yellow: {
-                hex: 0xffff00
-              }, 
-              red: {
-                hex: 0xff0000
-              }
+        var
+          w = window,
+          d = document,
+          container = d.getElementById('canvas-container'),
+          // three
+          scene,
+          camera,
+          view1,
+          view2,
+          view3,
+          renderer,
+          directionalLights,
+          directionalLightCount,
+          ambientLight,
+          raycaster,
+          plane,
+          offset,
+          intersection,
+          mouse,
+          controls,
+          loader = new THREE.JSONLoader(),
+          // game objects
+          // tableMesh,
+          // tableGeometry,
+          // tableMaterial,
+          boardSquareMesh,
+          boardSquareGeometryTemplate,
+          boardSquareMaterial,
+          boardBaseGeometry,
+          boardBaseMaterial,
+          boardBaseMesh,
+          squareMesh,
+          squareGeometryTemplate,
+          squareMaterial,
+          // tweens
+          rotationTween,
+          dropTween,
+          // other
+          i, l,
+          j, jl,
+          k, kl,
+          board,
+          hintBlock,
+          boardSquareMeshHovered,
+          blocks = [],
+          intersected,
+          selectedSquare,
+          selectedBlock,
+          xIndex, zIndex,
+          color,
+          colorAgent,
+          blockDefinitions = [ // TODO: Replace with $rootScope.blockDefinitions possibly?
+            //---------------------
+            // 5 pieces
+            //---------------------
+            {
+              id: 21,
+              startPosition: new THREE.Vector3(2.2, 0.1, 1.5),
+              squareCount: 5,
+              layout: [
+                [1,1,1,1,1]
+              ]
+            }, {
+              id: 20,
+              startPosition: new THREE.Vector3(2.6, 0.1, 1.5),
+              squareCount: 5,
+              layout: [
+                [1,1,1,1],
+                [1,0,0,0]
+              ]
+            }, {
+              id: 19,
+              startPosition: new THREE.Vector3(3.1, 0.1, 1.5),
+              squareCount: 5,
+              layout: [
+                [1,1,1,1],
+                [0,1,0,0]
+              ]
+            }, {
+              id: 18,
+              startPosition: new THREE.Vector3(3.6, 0.1, 1.5),
+              squareCount: 5,
+              layout: [
+                [0,1,1,1],
+                [1,1,0,0]
+              ]
+            }, {
+              id: 17,
+              startPosition: new THREE.Vector3(2.4, 0.1, 0.6),
+              squareCount: 5,
+              layout: [
+                [1,1,1],
+                [1,0,0],
+                [1,0,0]
+              ]
+            }, {
+              id: 16,
+              startPosition: new THREE.Vector3(3.1, 0.1, 0.6),
+              squareCount: 5,
+              layout: [
+                [0,1,1],
+                [1,1,0],
+                [1,0,0]
+              ]
+            }, {
+              id: 15,
+              startPosition: new THREE.Vector3(3.8, 0.1, 0.6),
+              squareCount: 5,
+              layout: [
+                [0,1,1],
+                [0,1,0],
+                [1,1,0]
+              ]
+            }, {
+              id: 14,
+              startPosition: new THREE.Vector3(2.4, 0.1, -0.1),
+              squareCount: 5,
+              layout: [
+                [1,1,1],
+                [0,1,0],
+                [0,1,0]
+              ]
+            }, {
+              id: 13,
+              startPosition: new THREE.Vector3(3.1, 0.1, -0.1),
+              squareCount: 5,
+              layout: [
+                [0,1,1],
+                [1,1,0],
+                [0,1,0]
+              ]
+            }, {
+              id: 12,
+              startPosition: new THREE.Vector3(3.8, 0.1, -0.1),
+              squareCount: 5,
+              layout: [
+                [0,1,0],
+                [1,1,1],
+                [0,1,0]
+              ]
+            }, {
+              id: 11,
+              startPosition: new THREE.Vector3(4.1, 0.1, 1.5),
+              squareCount: 5,
+              layout: [
+                [1,1,1],
+                [1,1,0]
+              ]
+            }, {
+              id: 10,
+              startPosition: new THREE.Vector3(4.4, 0.1, 0.6),
+              squareCount: 5,
+              layout: [
+                [1,1,1],
+                [1,0,1]
+              ]
             },
-            blockDefinitions = [ // TODO: Replace with $rootScope.blockDefinitions possibly?
-              //---------------------
-              // 5 pieces
-              //---------------------
-              {
-                id: 21,
-                startPosition: new THREE.Vector3(2.2, 0.1, 1.5),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1,1]
-                ]
-              }, {
-                id: 20,
-                startPosition: new THREE.Vector3(2.6, 0.1, 1.5),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1],
-                  [1,0,0,0]
-                ]
-              }, {
-                id: 19,
-                startPosition: new THREE.Vector3(3.1, 0.1, 1.5),
-                squareCount: 5,
-                layout: [
-                  [1,1,1,1],
-                  [0,1,0,0]
-                ]
-              }, {
-                id: 18,
-                startPosition: new THREE.Vector3(3.6, 0.1, 1.5),
-                squareCount: 5,
-                layout: [
-                  [0,1,1,1],
-                  [1,1,0,0]
-                ]
-              }, {
-                id: 17,
-                startPosition: new THREE.Vector3(2.4, 0.1, 0.6),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,0,0],
-                  [1,0,0]
-                ]
-              }, {
-                id: 16,
-                startPosition: new THREE.Vector3(3.1, 0.1, 0.6),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [1,1,0],
-                  [1,0,0]
-                ]
-              }, {
-                id: 15,
-                startPosition: new THREE.Vector3(3.8, 0.1, 0.6),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [0,1,0],
-                  [1,1,0]
-                ]
-              }, {
-                id: 14,
-                startPosition: new THREE.Vector3(2.4, 0.1, -0.1),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [0,1,0],
-                  [0,1,0]
-                ]
-              }, {
-                id: 13,
-                startPosition: new THREE.Vector3(3.1, 0.1, -0.1),
-                squareCount: 5,
-                layout: [
-                  [0,1,1],
-                  [1,1,0],
-                  [0,1,0]
-                ]
-              }, {
-                id: 12,
-                startPosition: new THREE.Vector3(3.8, 0.1, -0.1),
-                squareCount: 5,
-                layout: [
-                  [0,1,0],
-                  [1,1,1],
-                  [0,1,0]
-                ]
-              }, {
-                id: 11,
-                startPosition: new THREE.Vector3(4.1, 0.1, 1.5),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,1,0]
-                ]
-              }, {
-                id: 10,
-                startPosition: new THREE.Vector3(4.4, 0.1, 0.6),
-                squareCount: 5,
-                layout: [
-                  [1,1,1],
-                  [1,0,1]
-                ]
-              },
-              //---------------------
-              // 4 pieces
-              //---------------------
-              {
-                id: 9,
-                startPosition: new THREE.Vector3(2.2, 0.1, -0.9),
-                squareCount: 4,
-                layout: [
-                  [1,1,1,1]
-                ]
-              }, {
-                id: 8,
-                startPosition: new THREE.Vector3(2.6, 0.1, -0.9),
-                squareCount: 4,
-                layout: [
-                  [1,1,1],
-                  [1,0,0]
-                ]
-              }, {
-                id: 7,
-                startPosition: new THREE.Vector3(3.1, 0.1, -0.9),
-                squareCount: 4,
-                layout: [
-                  [1,1,1],
-                  [0,1,0]
-                ]
-              }, {
-                id: 6,
-                startPosition: new THREE.Vector3(3.6, 0.1, -0.9),
-                squareCount: 4,
-                layout: [
-                  [1,1,0],
-                  [0,1,1]
-                ]
-              }, {
-                id: 5,
-                startPosition: new THREE.Vector3(4.1, 0.1, -0.9),
-                squareCount: 4,
-                layout: [
-                  [1,1],
-                  [1,1]
-                ]
-              },
-              //---------------------
-              // 3 pieces
-              //---------------------
-              {
-                id: 4,
-                startPosition: new THREE.Vector3(2.2, 0.1, -1.7),
-                squareCount: 3,
-                layout: [
-                  [1,1,1]
-                ]
-              }, {
-                id: 3,
-                startPosition: new THREE.Vector3(2.6, 0.1, -1.7),
-                squareCount: 3,
-                layout: [
-                  [1,1],
-                  [1,0]
-                ]
-              },
-              //---------------------
-              // 2 pieces
-              //---------------------
-              {
-                id: 2,
-                startPosition: new THREE.Vector3(3.0, 0.1, -1.7),
-                squareCount: 2,
-                layout: [
-                  [1,1]
-                ]
-              },
-              //---------------------
-              // 1 pieces
-              //---------------------
-              {
-                id: 1,
-                startPosition: new THREE.Vector3(3.3, 0.1, -1.7),
-                squareCount: 1,
-                layout: [
-                  [1]
-                ]
-              }
-            ],
-            // dimensions
-            WIDTH = container.offsetWidth,
-            HEIGHT = container.offsetHeight,
-            // TABLE_WIDTH = 10,
-            // TABLE_HEIGHT = 10,
-            SQUARE_WIDTH = 0.2,
-            SQUARE_HEIGHT = 0.2,
-            SQUARE_DEPTH = 0.04,
-            BOARD_WIDTH_IN_SQUARES = 20,
-            BOARD_HEIGHT_IN_SQUARES = 20,
-            BOARD_BASE_DEPTH = 0.6;
-
-          //------------------------------------------------------------------
-          // util functions
-          //------------------------------------------------------------------
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function rotateClockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
-            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-              for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
+            //---------------------
+            // 4 pieces
+            //---------------------
+            {
+              id: 9,
+              startPosition: new THREE.Vector3(2.2, 0.1, -0.9),
+              squareCount: 4,
+              layout: [
+                [1,1,1,1]
+              ]
+            }, {
+              id: 8,
+              startPosition: new THREE.Vector3(2.6, 0.1, -0.9),
+              squareCount: 4,
+              layout: [
+                [1,1,1],
+                [1,0,0]
+              ]
+            }, {
+              id: 7,
+              startPosition: new THREE.Vector3(3.1, 0.1, -0.9),
+              squareCount: 4,
+              layout: [
+                [1,1,1],
+                [0,1,0]
+              ]
+            }, {
+              id: 6,
+              startPosition: new THREE.Vector3(3.6, 0.1, -0.9),
+              squareCount: 4,
+              layout: [
+                [1,1,0],
+                [0,1,1]
+              ]
+            }, {
+              id: 5,
+              startPosition: new THREE.Vector3(4.1, 0.1, -0.9),
+              squareCount: 4,
+              layout: [
+                [1,1],
+                [1,1]
+              ]
+            },
+            //---------------------
+            // 3 pieces
+            //---------------------
+            {
+              id: 4,
+              startPosition: new THREE.Vector3(2.2, 0.1, -1.7),
+              squareCount: 3,
+              layout: [
+                [1,1,1]
+              ]
+            }, {
+              id: 3,
+              startPosition: new THREE.Vector3(2.6, 0.1, -1.7),
+              squareCount: 3,
+              layout: [
+                [1,1],
+                [1,0]
+              ]
+            },
+            //---------------------
+            // 2 pieces
+            //---------------------
+            {
+              id: 2,
+              startPosition: new THREE.Vector3(3.0, 0.1, -1.7),
+              squareCount: 2,
+              layout: [
+                [1,1]
+              ]
+            },
+            //---------------------
+            // 1 pieces
+            //---------------------
+            {
+              id: 1,
+              startPosition: new THREE.Vector3(3.3, 0.1, -1.7),
+              squareCount: 1,
+              layout: [
+                [1]
+              ]
             }
+          ],
+          // dimensions
+          WIDTH = container.offsetWidth,
+          HEIGHT = container.offsetHeight,
+          // TABLE_WIDTH = 10,
+          // TABLE_HEIGHT = 10,
+          SQUARE_WIDTH = 0.2,
+          SQUARE_HEIGHT = 0.2,
+          SQUARE_DEPTH = 0.04,
+          BOARD_WIDTH_IN_SQUARES = 20,
+          BOARD_HEIGHT_IN_SQUARES = 20,
+          BOARD_BASE_DEPTH = 0.6;
 
-            return newLayout;
-          }
+        //------------------------------------------------------------------
+        // util functions
+        //------------------------------------------------------------------
 
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
+        // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+        //   blockDefinition = blockDefinitions[k];
 
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
-          //   console.log('\n\n\n');
-          // }
+        //   console.log('BEFORE');
+        //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+        //   console.log('AFTER');
+        //   console.log(JSON.stringify(rotateClockwise(rotateClockwise(blockDefinition.layout)), null, '  '));
+        //   console.log('\n\n\n');
+        // }
 
-          function rotateCounterclockwise(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
+        function rotateClockwise(layout) {
+          var 
+            layoutRow,
+            layoutRowLength = layout.length,
+            layoutColumn,
+            layoutColumnLength = layout[0].length,
+            newLayoutRow = 0,
+            newLayoutColumn = 0,
+            newLayout = [];
 
-            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-              for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
-              }
-              newLayoutRow++;
-              newLayoutColumn = 0;
-            }
-
-            return newLayout;
-          }
-
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
-
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
-
-          function flipVertical(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
-
+          for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
             for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
-              for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
+              if (!newLayout[newLayoutRow]) {
+                newLayout[newLayoutRow] = [];
               }
-              newLayoutRow++;
-              newLayoutColumn = 0;
+              newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+              newLayoutColumn++;
             }
-
-            return newLayout;
+            newLayoutRow++;
+            newLayoutColumn = 0;
           }
 
-          // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-          //   blockDefinition = blockDefinitions[k];
+          return newLayout;
+        }
 
-          //   console.log('BEFORE');
-          //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
-          //   console.log('AFTER');
-          //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
-          //   console.log('\n\n\n');
-          // }
+        // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+        //   blockDefinition = blockDefinitions[k];
 
-          function flipHorizontal(layout) {
-            var 
-              layoutRow,
-              layoutRowLength = layout.length,
-              layoutColumn,
-              layoutColumnLength = layout[0].length,
-              newLayoutRow = 0,
-              newLayoutColumn = 0,
-              newLayout = [];
+        //   console.log('BEFORE');
+        //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+        //   console.log('AFTER');
+        //   console.log(JSON.stringify(rotateCounterclockwise(rotateCounterclockwise(blockDefinition.layout)), null, '  '));
+        //   console.log('\n\n\n');
+        // }
 
+        function rotateCounterclockwise(layout) {
+          var 
+            layoutRow,
+            layoutRowLength = layout.length,
+            layoutColumn,
+            layoutColumnLength = layout[0].length,
+            newLayoutRow = 0,
+            newLayoutColumn = 0,
+            newLayout = [];
+
+          for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
             for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
-              for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
-                if (!newLayout[newLayoutRow]) {
-                  newLayout[newLayoutRow] = [];
-                }
-                newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
-                newLayoutColumn++;
+              if (!newLayout[newLayoutRow]) {
+                newLayout[newLayoutRow] = [];
               }
-              newLayoutRow++;
-              newLayoutColumn = 0;
+              newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+              newLayoutColumn++;
             }
-
-            return newLayout;
+            newLayoutRow++;
+            newLayoutColumn = 0;
           }
 
-          function canDrop(block, xIndex, zIndex) {
-            var
-              i, il,
-              j, jl,
-              layout = block.userData.layout,
-              layoutWidth = layout.length,
-              layoutHeight = layout[0].length,
-              onBoard = true,
-              squaresOpen = true,
-              touchingFace = false,
-              touchingCorner = false;
-            
-            // square on board, square open
-            for (i = 0, il = layoutWidth; i < il; i++) {
-              for (j = 0, jl = layoutHeight; j < jl; j++) {
+          return newLayout;
+        }
 
-                // is this square on the board?
-                if (
-                  !board[xIndex + i] ||
-                  !board[xIndex + i][zIndex + j]
-                ) {
-                  onBoard = false;
-                }
+        // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+        //   blockDefinition = blockDefinitions[k];
 
-                // is this square open?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  board[xIndex + i][zIndex + j].userData.block &&
-                  layout[i][j]
-                ) {
-                  squaresOpen = false;
-                  break;
-                }
+        //   console.log('BEFORE');
+        //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+        //   console.log('AFTER');
+        //   console.log(JSON.stringify(flipVertical(blockDefinition.layout), null, '  '));
+        //   console.log('\n\n\n');
+        // }
 
-                // is a touching the corner square?
-                if (
-                  (
-                    (
-                      (xIndex + i) === 0 ||
-                      (xIndex + i) === 19 // board.length
-                    ) && (
-                      (zIndex + j) === 0 ||
-                      (zIndex + j) === 19 // board.length
-                    )
-                    
-                  ) && 
-                  layout[i] &&
-                  layout[i][j]
-                ) {
-                  touchingCorner = true;
-                }
+        function flipVertical(layout) {
+          var 
+            layoutRow,
+            layoutRowLength = layout.length,
+            layoutColumn,
+            layoutColumnLength = layout[0].length,
+            newLayoutRow = 0,
+            newLayoutColumn = 0,
+            newLayout = [];
 
-                // is it touching another corner of a square that is the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?                  
-                  (
-                    // top left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1] &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1] &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom left
-                    ) || (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1] &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1] &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block &&
-                      board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingCorner = true;
-                }
+          for (layoutRow = layoutRowLength - 1; layoutRow >= 0; layoutRow--) {
+            for (layoutColumn = 0; layoutColumn < layoutColumnLength; layoutColumn++) {
+              if (!newLayout[newLayoutRow]) {
+                newLayout[newLayoutRow] = [];
+              }
+              newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+              newLayoutColumn++;
+            }
+            newLayoutRow++;
+            newLayoutColumn = 0;
+          }
 
-                // is the block touching up against another block of the same color?
-                if (
-                  board[xIndex + i] &&
-                  board[xIndex + i][zIndex + j] &&
-                  layout[i] &&
-                  layout[i][j] &&
-                  // touching on one of the corners?
-                  (
-                    // left
-                    (
-                      board[xIndex + i - 1] &&
-                      board[xIndex + i - 1][zIndex + j] &&
-                      board[xIndex + i - 1][zIndex + j].userData.block &&
-                      board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // right
-                    ) || (
-                      board[xIndex + i + 1] &&
-                      board[xIndex + i + 1][zIndex + j] &&
-                      board[xIndex + i + 1][zIndex + j].userData.block &&
-                      board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // top
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j - 1] &&
-                      board[xIndex + i][zIndex + j - 1].userData.block &&
-                      board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    // bottom
-                    ) || (
-                      board[xIndex + i] &&
-                      board[xIndex + i][zIndex + j + 1] &&
-                      board[xIndex + i][zIndex + j + 1].userData.block &&
-                      board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
-                        block.userData.colorAgent
-                    )
-                  )
-                ) {
-                  touchingFace = true;
-                }
+          return newLayout;
+        }
 
+        // for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+        //   blockDefinition = blockDefinitions[k];
+
+        //   console.log('BEFORE');
+        //   console.log(JSON.stringify(blockDefinition.layout, null, '  '));
+        //   console.log('AFTER');
+        //   console.log(JSON.stringify(flipHorizontal(blockDefinition.layout), null, '  '));
+        //   console.log('\n\n\n');
+        // }
+
+        function flipHorizontal(layout) {
+          var 
+            layoutRow,
+            layoutRowLength = layout.length,
+            layoutColumn,
+            layoutColumnLength = layout[0].length,
+            newLayoutRow = 0,
+            newLayoutColumn = 0,
+            newLayout = [];
+
+          for (layoutRow = 0; layoutRow < layoutRowLength; layoutRow++) {
+            for (layoutColumn = layoutColumnLength - 1; layoutColumn >= 0; layoutColumn--) {
+              if (!newLayout[newLayoutRow]) {
+                newLayout[newLayoutRow] = [];
+              }
+              newLayout[newLayoutRow][newLayoutColumn] = layout[layoutRow][layoutColumn];
+              newLayoutColumn++;
+            }
+            newLayoutRow++;
+            newLayoutColumn = 0;
+          }
+
+          return newLayout;
+        }
+
+        function canDrop(block, xIndex, zIndex) {
+          var
+            i, il,
+            j, jl,
+            layout = block.userData.layout,
+            layoutWidth = layout.length,
+            layoutHeight = layout[0].length,
+            onBoard = true,
+            squaresOpen = true,
+            touchingFace = false,
+            touchingCorner = false;
+          
+          // square on board, square open
+          for (i = 0, il = layoutWidth; i < il; i++) {
+            for (j = 0, jl = layoutHeight; j < jl; j++) {
+
+              // is this square on the board?
+              if (
+                !board[xIndex + i] ||
+                !board[xIndex + i][zIndex + j]
+              ) {
+                onBoard = false;
               }
 
-              if (!onBoard || !squaresOpen || touchingFace) {
+              // is this square open?
+              if (
+                board[xIndex + i] &&
+                board[xIndex + i][zIndex + j] &&
+                board[xIndex + i][zIndex + j].userData.block &&
+                layout[i][j]
+              ) {
+                squaresOpen = false;
                 break;
               }
+
+              // is a touching the corner square?
+              if (
+                (
+                  (
+                    (xIndex + i) === 0 ||
+                    (xIndex + i) === 19 // board.length
+                  ) && (
+                    (zIndex + j) === 0 ||
+                    (zIndex + j) === 19 // board.length
+                  )
+                  
+                ) && 
+                layout[i] &&
+                layout[i][j]
+              ) {
+                touchingCorner = true;
+              }
+
+              // is it touching another corner of a square that is the same color?
+              if (
+                board[xIndex + i] &&
+                board[xIndex + i][zIndex + j] &&
+                layout[i] &&
+                layout[i][j] &&
+                // touching on one of the corners?                  
+                (
+                  // top left
+                  (
+                    board[xIndex + i - 1] &&
+                    board[xIndex + i - 1][zIndex + j - 1] &&
+                    board[xIndex + i - 1][zIndex + j - 1].userData.block &&
+                    board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // top right
+                  ) || (
+                    board[xIndex + i + 1] &&
+                    board[xIndex + i + 1][zIndex + j - 1] &&
+                    board[xIndex + i + 1][zIndex + j - 1].userData.block &&
+                    board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // bottom left
+                  ) || (
+                    board[xIndex + i - 1] &&
+                    board[xIndex + i - 1][zIndex + j + 1] &&
+                    board[xIndex + i - 1][zIndex + j + 1].userData.block &&
+                    board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // bottom right
+                  ) || (
+                    board[xIndex + i + 1] &&
+                    board[xIndex + i + 1][zIndex + j + 1] &&
+                    board[xIndex + i + 1][zIndex + j + 1].userData.block &&
+                    board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  )
+                )
+              ) {
+                touchingCorner = true;
+              }
+
+              // is the block touching up against another block of the same color?
+              if (
+                board[xIndex + i] &&
+                board[xIndex + i][zIndex + j] &&
+                layout[i] &&
+                layout[i][j] &&
+                // touching on one of the corners?
+                (
+                  // left
+                  (
+                    board[xIndex + i - 1] &&
+                    board[xIndex + i - 1][zIndex + j] &&
+                    board[xIndex + i - 1][zIndex + j].userData.block &&
+                    board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // right
+                  ) || (
+                    board[xIndex + i + 1] &&
+                    board[xIndex + i + 1][zIndex + j] &&
+                    board[xIndex + i + 1][zIndex + j].userData.block &&
+                    board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // top
+                  ) || (
+                    board[xIndex + i] &&
+                    board[xIndex + i][zIndex + j - 1] &&
+                    board[xIndex + i][zIndex + j - 1].userData.block &&
+                    board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  // bottom
+                  ) || (
+                    board[xIndex + i] &&
+                    board[xIndex + i][zIndex + j + 1] &&
+                    board[xIndex + i][zIndex + j + 1].userData.block &&
+                    board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
+                      block.userData.colorAgent
+                  )
+                )
+              ) {
+                touchingFace = true;
+              }
+
             }
 
-            return onBoard && squaresOpen && !touchingFace && touchingCorner;
+            if (!onBoard || !squaresOpen || touchingFace) {
+              break;
+            }
           }
 
-          //------------------------------------------------------------------
-          // renderer
-          //------------------------------------------------------------------
-          renderer = new THREE.WebGLRenderer();
-          renderer.setSize(WIDTH, HEIGHT);
-          renderer.setClearColor(0xffffff);
-          renderer.shadowMap.enabled = true;
+          return onBoard && squaresOpen && !touchingFace && touchingCorner;
+        }
 
-          //------------------------------------------------------------------
-          // scene
-          //------------------------------------------------------------------
-          scene = new THREE.Scene();
+        //------------------------------------------------------------------
+        // renderer
+        //------------------------------------------------------------------
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(WIDTH, HEIGHT);
+        renderer.setClearColor(0xffffff);
+        renderer.shadowMap.enabled = true;
 
-          //------------------------------------------------------------------
-          // camera
-          //------------------------------------------------------------------
-          camera = new THREE.PerspectiveCamera(
-            45, 
-            WIDTH/HEIGHT, 
-            0.1, 
-            1000
-          );
+        //------------------------------------------------------------------
+        // scene
+        //------------------------------------------------------------------
+        scene = new THREE.Scene();
 
+        //------------------------------------------------------------------
+        // camera
+        //------------------------------------------------------------------
+        camera = new THREE.PerspectiveCamera(
+          45, 
+          WIDTH/HEIGHT, 
+          0.1, 
+          1000
+        );
+
+        camera.position.x = 6;
+        camera.position.y = 6;
+        camera.position.z = 6;
+
+        camera.rotation.x = 0;
+        camera.rotation.y = 0;
+        camera.rotation.z = 0;
+
+        camera.lookAt(new THREE.Vector3(0,0,0));
+
+        // listeners
+        // TODO: Do views for:
+        // - all corners - 4
+        // - all sides - 4
+        // - all rotations of to top view - 4
+
+        view1 = d.getElementById('view-1');
+        view2 = d.getElementById('view-2');
+        view3 = d.getElementById('view-3');
+
+        view1.addEventListener('click', function (evt) {
+          camera.position.x = 0;
+          camera.position.y = 10;
+          camera.position.z = 0;
+
+          camera.rotation.x = 0;
+          camera.rotation.y = 0;
+          camera.rotation.z = 0;
+
+          camera.lookAt(new THREE.Vector3(0,0,0));
+        });
+
+        view2.addEventListener('click', function (evt) {
+          camera.position.x = 0;
+          camera.position.y = 6;
+          camera.position.z = 9;
+
+          camera.rotation.x = 0;
+          camera.rotation.y = 0;
+          camera.rotation.z = 0;
+          
+          camera.lookAt(new THREE.Vector3(0,0,0));
+        });
+
+        view3.addEventListener('click', function (evt) {
           camera.position.x = 6;
           camera.position.y = 6;
           camera.position.z = 6;
@@ -1271,748 +1328,742 @@ define('app', [
           camera.rotation.x = 0;
           camera.rotation.y = 0;
           camera.rotation.z = 0;
-
+          
           camera.lookAt(new THREE.Vector3(0,0,0));
+        });
 
-          // listeners
-          // TODO: Do views for:
-          // - all corners - 4
-          // - all sides - 4
-          // - all rotations of to top view - 4
+        // resize if the window gets resized
+        w.addEventListener('resize', function () {
 
-          view1 = d.getElementById('view-1');
-          view2 = d.getElementById('view-2');
-          view3 = d.getElementById('view-3');
+          WIDTH = container.offsetWidth;
+          HEIGHT = container.offsetHeight;
+          
+          // update the camera
+          camera.aspect = WIDTH / HEIGHT;
+          camera.updateProjectionMatrix();
 
-          view1.addEventListener('click', function (evt) {
-            camera.position.x = 0;
-            camera.position.y = 10;
-            camera.position.z = 0;
+          // update the renderer
+          renderer.setSize(WIDTH, HEIGHT);
+          
+        }, false);
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
+        //------------------------------------------------------------------
+        // controls
+        //------------------------------------------------------------------
+        controls = new THREE.TrackballControls(camera);
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 1.2;
+        controls.panSpeed = 0.3;
+        controls.noZoom = false;
+        controls.noPan = false;
+        controls.noRotate = false;
+        controls.staticMoving = false;
+        controls.dynamicDampingFactor = 0.3;
 
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+        //------------------------------------------------------------------
+        // lights
+        //------------------------------------------------------------------
+        directionalLights = [];
 
-          view2.addEventListener('click', function (evt) {
-            camera.position.x = 0;
-            camera.position.y = 6;
-            camera.position.z = 9;
+        // 1 - from above
+        directionalLightCount = 0;
+        directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
-            
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+        directionalLights[directionalLightCount].position.x = -50;
+        directionalLights[directionalLightCount].position.y = 50;
+        directionalLights[directionalLightCount].position.z = -50;
 
-          view3.addEventListener('click', function (evt) {
-            camera.position.x = 6;
-            camera.position.y = 6;
-            camera.position.z = 6;
+        directionalLights[directionalLightCount].castShadow = true;
+        scene.add(directionalLights[directionalLightCount]);
 
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
-            
-            camera.lookAt(new THREE.Vector3(0,0,0));
-          });
+        // 2 - from above
+        directionalLightCount = 1;
+        directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          // resize if the window gets resized
-          w.addEventListener('resize', function () {
+        directionalLights[directionalLightCount].position.x = 50;
+        directionalLights[directionalLightCount].position.y = 50;
+        directionalLights[directionalLightCount].position.z = 50;
 
-            WIDTH = container.offsetWidth;
-            HEIGHT = container.offsetHeight;
-            
-            // update the camera
-            camera.aspect = WIDTH / HEIGHT;
-            camera.updateProjectionMatrix();
+        directionalLights[directionalLightCount].castShadow = true;
+        scene.add(directionalLights[directionalLightCount]);
 
-            // update the renderer
-            renderer.setSize(WIDTH, HEIGHT);
-            
-          }, false);
+        // 3 - from above
+        directionalLightCount = 2;
+        directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          //------------------------------------------------------------------
-          // controls
-          //------------------------------------------------------------------
-          controls = new THREE.TrackballControls(camera);
-          controls.rotateSpeed = 1.0;
-          controls.zoomSpeed = 1.2;
-          controls.panSpeed = 0.3;
-          controls.noZoom = false;
-          controls.noPan = false;
-          controls.noRotate = false;
-          controls.staticMoving = false;
-          controls.dynamicDampingFactor = 0.3;
+        directionalLights[directionalLightCount].position.x = -50;
+        directionalLights[directionalLightCount].position.y = 50;
+        directionalLights[directionalLightCount].position.z = 50;
 
-          //------------------------------------------------------------------
-          // lights
-          //------------------------------------------------------------------
-          directionalLights = [];
+        directionalLights[directionalLightCount].castShadow = true;
+        scene.add(directionalLights[directionalLightCount]);
 
-          // 1 - from above
-          directionalLightCount = 0;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+        // 4 - from above
+        directionalLightCount = 3;
+        directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          directionalLights[directionalLightCount].position.x = -50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = -50;
+        directionalLights[directionalLightCount].position.x = 50;
+        directionalLights[directionalLightCount].position.y = 50;
+        directionalLights[directionalLightCount].position.z = -50;
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+        directionalLights[directionalLightCount].castShadow = true;
+        scene.add(directionalLights[directionalLightCount]);
 
-          // 2 - from above
-          directionalLightCount = 1;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+        // 5 - from below
+        directionalLightCount = 4;
+        directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
 
-          directionalLights[directionalLightCount].position.x = 50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = 50;
+        directionalLights[directionalLightCount].position.x = 0;
+        directionalLights[directionalLightCount].position.y = -50;
+        directionalLights[directionalLightCount].position.z = 0;
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+        directionalLights[directionalLightCount].castShadow = true;
+        scene.add(directionalLights[directionalLightCount]);
 
-          // 3 - from above
-          directionalLightCount = 2;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+        ambientLight = new THREE.AmbientLight(0x505050);
+        scene.add(ambientLight);
 
-          directionalLights[directionalLightCount].position.x = -50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = 50;
+        //------------------------------------------------------------------
+        // Table
+        //------------------------------------------------------------------
+        // tableGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, TABLE_HEIGHT);
+        // tableMaterial = new THREE.MeshStandardMaterial({
+        //   color: 0xeeeeee,
+        //   side: THREE.BackSide
+        // });
+        // tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+        // tableMesh.position.y = -1;
 
-          // 4 - from above
-          directionalLightCount = 3;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+        // tableMesh.rotation.x = 0.5 * Math.PI;
 
-          directionalLights[directionalLightCount].position.x = 50;
-          directionalLights[directionalLightCount].position.y = 50;
-          directionalLights[directionalLightCount].position.z = -50;
+        // tableMesh.castShadow = false;
+        // tableMesh.receiveShadow = true;
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+        // scene.add(tableMesh);
 
-          // 5 - from below
-          directionalLightCount = 4;
-          directionalLights[directionalLightCount] = new THREE.DirectionalLight(0xffffff, 0.25);
+        //------------------------------------------------------------------
+        // Board
+        //------------------------------------------------------------------
+        board = [];
+        //boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
+        boardSquareGeometryTemplate = loader.parse({
+          metadata: {},
+          scale : 1.000000,
+          materials: [],
+          vertices: [-0.100000,0.000000,0.100000,-0.100000,0.010000,0.100000,-0.100000,0.000000,-0.100000,-0.100000,0.010000,-0.100000,0.100000,0.000000,0.100000,0.100000,0.010000,0.100000,0.100000,0.000000,-0.100000,0.100000,0.010000,-0.100000,0.097500,0.010000,0.097500,-0.097500,0.010000,0.097500,0.097500,0.010000,-0.097500,-0.097500,0.010000,-0.097500,0.095000,0.000000,0.095000,-0.095000,0.000000,0.095000,0.095000,0.000000,-0.095000,-0.095000,0.000000,-0.095000],
+          morphTargets: [],
+          morphColors: [],
+          normals: [-1,0,0,0,0,-1,1,0,0,0,0,1,0,-1,0,0,1,0,-0.9701,0.2425,0,0,0.2425,0.9701,0,0.2425,-0.9701,0.9701,0.2425,0],
+          colors: [],
+          uvs: [[]],
+          faces: [35,1,3,2,0,0,0,0,0,0,35,3,7,6,2,0,1,1,1,1,35,7,5,4,6,0,2,2,2,2,35,5,1,0,4,0,3,3,3,3,35,0,2,6,4,0,4,4,4,4,35,9,11,3,1,0,5,5,5,5,35,5,8,9,1,0,5,5,5,5,35,5,7,10,8,0,5,5,5,5,35,8,10,14,12,0,6,6,6,6,35,10,7,3,11,0,5,5,5,5,35,12,14,15,13,0,5,5,5,5,35,10,11,15,14,0,7,7,7,7,35,9,8,12,13,0,8,8,8,8,35,11,9,13,15,0,9,9,9,9]
+        }).geometry;
 
-          directionalLights[directionalLightCount].position.x = 0;
-          directionalLights[directionalLightCount].position.y = -50;
-          directionalLights[directionalLightCount].position.z = 0;
+        for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
+          board[i] = [];
 
-          directionalLights[directionalLightCount].castShadow = true;
-          scene.add(directionalLights[directionalLightCount]);
+          for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
+            boardSquareMaterial = new THREE.MeshPhongMaterial({
+              color: 0xfcfcfc,
+              shininess: 50,
+              side: THREE.DoubleSide
+            });
+            boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
 
-          ambientLight = new THREE.AmbientLight(0x505050);
-          scene.add(ambientLight);
+            boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + SQUARE_WIDTH / 2;
+            boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + SQUARE_HEIGHT / 2;
 
-          //------------------------------------------------------------------
-          // Table
-          //------------------------------------------------------------------
-          // tableGeometry = new THREE.PlaneGeometry(TABLE_WIDTH, TABLE_HEIGHT);
-          // tableMaterial = new THREE.MeshStandardMaterial({
-          //   color: 0xeeeeee,
-          //   side: THREE.BackSide
-          // });
-          // tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
+            // boardSquareMesh.rotation.x = 0.5 * Math.PI;
 
-          // tableMesh.position.y = -1;
+            boardSquareMesh.castShadow = true;
+            boardSquareMesh.receiveShadow = false;
 
-          // tableMesh.rotation.x = 0.5 * Math.PI;
+            boardSquareMesh.userData.xIndex = i;
+            boardSquareMesh.userData.zIndex = j;
+            boardSquareMesh.userData.block = null;
+            boardSquareMesh.userData.square = null;
 
-          // tableMesh.castShadow = false;
-          // tableMesh.receiveShadow = true;
-
-          // scene.add(tableMesh);
-
-          //------------------------------------------------------------------
-          // Board
-          //------------------------------------------------------------------
-          board = [];
-          //boardSquareGeometryTemplate = new THREE.PlaneGeometry(SQUARE_WIDTH, SQUARE_HEIGHT);
-          boardSquareGeometryTemplate = loader.parse({
-            metadata: {},
-            scale : 1.000000,
-            materials: [],
-            vertices: [-0.100000,0.000000,0.100000,-0.100000,0.010000,0.100000,-0.100000,0.000000,-0.100000,-0.100000,0.010000,-0.100000,0.100000,0.000000,0.100000,0.100000,0.010000,0.100000,0.100000,0.000000,-0.100000,0.100000,0.010000,-0.100000,0.097500,0.010000,0.097500,-0.097500,0.010000,0.097500,0.097500,0.010000,-0.097500,-0.097500,0.010000,-0.097500,0.095000,0.000000,0.095000,-0.095000,0.000000,0.095000,0.095000,0.000000,-0.095000,-0.095000,0.000000,-0.095000],
-            morphTargets: [],
-            morphColors: [],
-            normals: [-1,0,0,0,0,-1,1,0,0,0,0,1,0,-1,0,0,1,0,-0.9701,0.2425,0,0,0.2425,0.9701,0,0.2425,-0.9701,0.9701,0.2425,0],
-            colors: [],
-            uvs: [[]],
-            faces: [35,1,3,2,0,0,0,0,0,0,35,3,7,6,2,0,1,1,1,1,35,7,5,4,6,0,2,2,2,2,35,5,1,0,4,0,3,3,3,3,35,0,2,6,4,0,4,4,4,4,35,9,11,3,1,0,5,5,5,5,35,5,8,9,1,0,5,5,5,5,35,5,7,10,8,0,5,5,5,5,35,8,10,14,12,0,6,6,6,6,35,10,7,3,11,0,5,5,5,5,35,12,14,15,13,0,5,5,5,5,35,10,11,15,14,0,7,7,7,7,35,9,8,12,13,0,8,8,8,8,35,11,9,13,15,0,9,9,9,9]
-          }).geometry;
-
-          for (i = 0, l = BOARD_WIDTH_IN_SQUARES; i < l; i++) {
-            board[i] = [];
-
-            for (j = 0, jl = BOARD_HEIGHT_IN_SQUARES; j < jl; j++) {
-              boardSquareMaterial = new THREE.MeshPhongMaterial({
-                color: 0xfcfcfc,
-                shininess: 50,
-                side: THREE.DoubleSide
-              });
-              boardSquareMesh = new THREE.Mesh(boardSquareGeometryTemplate, boardSquareMaterial);
-
-              boardSquareMesh.position.x = (i * SQUARE_WIDTH) - ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) + SQUARE_WIDTH / 2;
-              boardSquareMesh.position.z = (j * SQUARE_HEIGHT) - ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) + SQUARE_HEIGHT / 2;
-
-              // boardSquareMesh.rotation.x = 0.5 * Math.PI;
-
-              boardSquareMesh.castShadow = true;
-              boardSquareMesh.receiveShadow = false;
-
-              boardSquareMesh.userData.xIndex = i;
-              boardSquareMesh.userData.zIndex = j;
-              boardSquareMesh.userData.block = null;
-              boardSquareMesh.userData.square = null;
-
-              board[i][j] = boardSquareMesh;
-              scene.add(boardSquareMesh);
-            }
+            board[i][j] = boardSquareMesh;
+            scene.add(boardSquareMesh);
           }
+        }
 
-          boardBaseGeometry = new THREE.BoxGeometry(
-            (BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH), 
-            BOARD_BASE_DEPTH, 
-            (BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT)
-          );
-          boardBaseMaterial = new THREE.MeshPhongMaterial({
-            color: 0xfcfcfc,
-            shininess: 50,
-            side: THREE.DoubleSide
-          });
-          boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
-          boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2) - 0.0001;
+        boardBaseGeometry = new THREE.BoxGeometry(
+          (BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH), 
+          BOARD_BASE_DEPTH, 
+          (BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT)
+        );
+        boardBaseMaterial = new THREE.MeshPhongMaterial({
+          color: 0xfcfcfc,
+          shininess: 50,
+          side: THREE.DoubleSide
+        });
+        boardBaseMesh = new THREE.Mesh(boardBaseGeometry, boardBaseMaterial);
+        boardBaseMesh.position.y = -(BOARD_BASE_DEPTH / 2) - 0.0001;
 
-          scene.add(boardBaseMesh);
+        scene.add(boardBaseMesh);
 
-          //------------------------------------------------------------------
-          // Blocks
-          //------------------------------------------------------------------
-          var 
-            block,
-            blockDefinition,
-            layoutWidth,
-            layoutHeight,
-            row,
-            square;
+        //------------------------------------------------------------------
+        // Blocks
+        //------------------------------------------------------------------
+        var 
+          block,
+          blockDefinition,
+          layoutWidth,
+          layoutHeight,
+          row,
+          square;
 
-          for (color in colors) {
-            colorAgent = colors[color];
-            // TODO: find out who has which color
+        for (color in $rootScope.state.colors) {
+          colorAgent = $rootScope.state.colors[color];
 
-            for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
-              blockDefinition = blockDefinitions[k];
+          for (k = 0, kl = blockDefinitions.length; k < kl; k++) {
+            blockDefinition = blockDefinitions[k];
 
-              block = new THREE.Group();
+            block = new THREE.Group();
 
-              block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
-              block.userData.squareCount = blockDefinition.squareCount;
-              block.userData.colorAgent = colorAgent;
-              block.userData.color = color;
+            block.userData.id = color + '-' + blockDefinitions.id;
+            block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
+            block.userData.squareCount = blockDefinition.squareCount;
+            block.userData.colorAgent = colorAgent;
+            block.userData.color = color;
 
-              layoutWidth = block.userData.layout.length;
-              layoutHeight = block.userData.layout[0].length;
+            layoutWidth = block.userData.layout.length;
+            layoutHeight = block.userData.layout[0].length;
 
-              for (i = 0, l = blockDefinition.layout.length; i < l; i++) {
-                row = blockDefinition.layout[i];
+            for (i = 0, l = blockDefinition.layout.length; i < l; i++) {
+              row = blockDefinition.layout[i];
 
-                for (j = 0, jl = row.length; j < jl; j++) {
-                  square = row[j];
+              for (j = 0, jl = row.length; j < jl; j++) {
+                square = row[j];
 
-                  if (square) {
-                    //squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
-                    squareGeometryTemplate = loader.parse({
-                      metadata: {},
-                      scale : 1.000000,
-                      materials: [],
-                      vertices: [0.100000,0.010000,-0.100000,-0.100000,0.010000,0.100000,0.100000,0.010000,0.100000,-0.100000,0.010000,-0.100000,-0.100000,0.030000,0.100000,0.100000,0.030000,0.100000,-0.100000,0.030000,-0.100000,0.100000,0.030000,-0.100000,-0.092500,0.030000,0.092500,-0.092500,0.030000,-0.092500,0.092500,0.030000,0.092500,0.092500,0.030000,-0.092500,-0.092500,0.040000,0.092500,-0.092500,0.040000,-0.092500,0.092500,0.040000,0.092500,0.092500,0.040000,-0.092500,-0.092500,0.010000,0.092500,0.092500,0.010000,0.092500,-0.092500,0.010000,-0.092500,0.092500,0.010000,-0.092500,-0.092500,0.000000,0.092500,0.092500,0.000000,0.092500,-0.092500,0.000000,-0.092500,0.092500,0.000000,-0.092500,-0.065000,0.040000,0.065000,-0.065000,0.040000,-0.065000,0.065000,0.040000,0.065000,0.065000,0.040000,-0.065000,-0.065000,0.030000,0.065000,-0.065000,0.030000,-0.065000,0.065000,0.030000,0.065000,0.065000,0.030000,-0.065000,-0.065000,0.000000,0.065000,0.065000,0.000000,0.065000,-0.065000,0.000000,-0.065000,0.065000,0.000000,-0.065000,-0.065000,0.010000,0.065000,0.065000,0.010000,0.065000,-0.065000,0.010000,-0.065000,0.065000,0.010000,-0.065000],
-                      morphTargets: [],
-                      morphColors: [],
-                      normals: [0,0,-1,0,0,1,1,0,0,-1,0,0,0,1,0,0,-1,0],
-                      colors: [],
-                      uvs: [[]],
-                      faces: [35,0,3,6,7,0,0,0,0,0,35,1,2,5,4,0,1,1,1,1,35,2,0,7,5,0,2,2,2,2,35,3,1,4,6,0,3,3,3,3,35,9,11,7,6,0,4,4,4,4,35,4,8,9,6,0,4,4,4,4,35,4,5,10,8,0,4,4,4,4,35,11,9,13,15,0,0,0,0,0,35,10,5,7,11,0,4,4,4,4,35,10,11,15,14,0,2,2,2,2,35,9,8,12,13,0,3,3,3,3,35,8,10,14,12,0,1,1,1,1,35,17,19,0,2,0,5,5,5,5,35,1,16,17,2,0,5,5,5,5,35,1,3,18,16,0,5,5,5,5,35,17,16,20,21,0,1,1,1,1,35,18,3,0,19,0,5,5,5,5,35,16,18,22,20,0,3,3,3,3,35,19,17,21,23,0,2,2,2,2,35,18,19,23,22,0,0,0,0,0,35,25,27,15,13,0,4,4,4,4,35,12,24,25,13,0,4,4,4,4,35,12,14,26,24,0,4,4,4,4,35,24,26,30,28,0,0,0,0,0,35,26,14,15,27,0,4,4,4,4,35,28,30,31,29,0,4,4,4,4,35,26,27,31,30,0,3,3,3,3,35,27,25,29,31,0,1,1,1,1,35,25,24,28,29,0,2,2,2,2,35,33,35,23,21,0,5,5,5,5,35,20,32,33,21,0,5,5,5,5,35,20,22,34,32,0,5,5,5,5,35,33,32,36,37,0,0,0,0,0,35,34,22,23,35,0,5,5,5,5,35,36,38,39,37,0,5,5,5,5,35,32,34,38,36,0,2,2,2,2,35,34,35,39,38,0,1,1,1,1,35,35,33,37,39,0,3,3,3,3]
-                    }).geometry;
-                    squareMaterial = new THREE.MeshPhongMaterial({
-                      color: block.userData.colorAgent.hex,
-                      transparent: true,
-                      opacity: 0.75,
-                      shininess: 75,
-                      side: THREE.DoubleSide
-                    });
-                    squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
+                if (square) {
+                  //squareGeometryTemplate = new THREE.BoxGeometry(SQUARE_WIDTH, SQUARE_DEPTH, SQUARE_HEIGHT);
+                  squareGeometryTemplate = loader.parse({
+                    metadata: {},
+                    scale : 1.000000,
+                    materials: [],
+                    vertices: [0.100000,0.010000,-0.100000,-0.100000,0.010000,0.100000,0.100000,0.010000,0.100000,-0.100000,0.010000,-0.100000,-0.100000,0.030000,0.100000,0.100000,0.030000,0.100000,-0.100000,0.030000,-0.100000,0.100000,0.030000,-0.100000,-0.092500,0.030000,0.092500,-0.092500,0.030000,-0.092500,0.092500,0.030000,0.092500,0.092500,0.030000,-0.092500,-0.092500,0.040000,0.092500,-0.092500,0.040000,-0.092500,0.092500,0.040000,0.092500,0.092500,0.040000,-0.092500,-0.092500,0.010000,0.092500,0.092500,0.010000,0.092500,-0.092500,0.010000,-0.092500,0.092500,0.010000,-0.092500,-0.092500,0.000000,0.092500,0.092500,0.000000,0.092500,-0.092500,0.000000,-0.092500,0.092500,0.000000,-0.092500,-0.065000,0.040000,0.065000,-0.065000,0.040000,-0.065000,0.065000,0.040000,0.065000,0.065000,0.040000,-0.065000,-0.065000,0.030000,0.065000,-0.065000,0.030000,-0.065000,0.065000,0.030000,0.065000,0.065000,0.030000,-0.065000,-0.065000,0.000000,0.065000,0.065000,0.000000,0.065000,-0.065000,0.000000,-0.065000,0.065000,0.000000,-0.065000,-0.065000,0.010000,0.065000,0.065000,0.010000,0.065000,-0.065000,0.010000,-0.065000,0.065000,0.010000,-0.065000],
+                    morphTargets: [],
+                    morphColors: [],
+                    normals: [0,0,-1,0,0,1,1,0,0,-1,0,0,0,1,0,0,-1,0],
+                    colors: [],
+                    uvs: [[]],
+                    faces: [35,0,3,6,7,0,0,0,0,0,35,1,2,5,4,0,1,1,1,1,35,2,0,7,5,0,2,2,2,2,35,3,1,4,6,0,3,3,3,3,35,9,11,7,6,0,4,4,4,4,35,4,8,9,6,0,4,4,4,4,35,4,5,10,8,0,4,4,4,4,35,11,9,13,15,0,0,0,0,0,35,10,5,7,11,0,4,4,4,4,35,10,11,15,14,0,2,2,2,2,35,9,8,12,13,0,3,3,3,3,35,8,10,14,12,0,1,1,1,1,35,17,19,0,2,0,5,5,5,5,35,1,16,17,2,0,5,5,5,5,35,1,3,18,16,0,5,5,5,5,35,17,16,20,21,0,1,1,1,1,35,18,3,0,19,0,5,5,5,5,35,16,18,22,20,0,3,3,3,3,35,19,17,21,23,0,2,2,2,2,35,18,19,23,22,0,0,0,0,0,35,25,27,15,13,0,4,4,4,4,35,12,24,25,13,0,4,4,4,4,35,12,14,26,24,0,4,4,4,4,35,24,26,30,28,0,0,0,0,0,35,26,14,15,27,0,4,4,4,4,35,28,30,31,29,0,4,4,4,4,35,26,27,31,30,0,3,3,3,3,35,27,25,29,31,0,1,1,1,1,35,25,24,28,29,0,2,2,2,2,35,33,35,23,21,0,5,5,5,5,35,20,32,33,21,0,5,5,5,5,35,20,22,34,32,0,5,5,5,5,35,33,32,36,37,0,0,0,0,0,35,34,22,23,35,0,5,5,5,5,35,36,38,39,37,0,5,5,5,5,35,32,34,38,36,0,2,2,2,2,35,34,35,39,38,0,1,1,1,1,35,35,33,37,39,0,3,3,3,3]
+                  }).geometry;
+                  squareMaterial = new THREE.MeshPhongMaterial({
+                    color: block.userData.colorAgent.hex,
+                    transparent: true,
+                    opacity: 0.75,
+                    shininess: 75,
+                    side: THREE.DoubleSide
+                  });
+                  squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
 
-                    squareMesh.position.x = i * SQUARE_WIDTH - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2);
-                    squareMesh.position.z = j * SQUARE_HEIGHT - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2);
-                    squareMesh.position.y = - SQUARE_DEPTH / 2;
+                  squareMesh.position.x = i * SQUARE_WIDTH - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2);
+                  squareMesh.position.z = j * SQUARE_HEIGHT - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2);
+                  squareMesh.position.y = - SQUARE_DEPTH / 2;
 
-                    // squareMesh.position.x = i * SQUARE_WIDTH;
-                    // squareMesh.position.z = j * SQUARE_HEIGHT;
+                  // squareMesh.position.x = i * SQUARE_WIDTH;
+                  // squareMesh.position.z = j * SQUARE_HEIGHT;
 
-                    squareMesh.userData.xIndex = i;
-                    squareMesh.userData.zIndex = j;
+                  squareMesh.userData.xIndex = i;
+                  squareMesh.userData.zIndex = j;
 
-                    block.add(squareMesh);
-                  }
-
+                  block.add(squareMesh);
                 }
+
               }
-
-              block.startPosition = new THREE.Vector3();
-              block.startRotation = new THREE.Vector3();
-
-              block.isUpsideDown = false;
-              block.isRotated = false;
-
-              if (color === 'blue') {
-                block.startPosition.x = blockDefinition.startPosition.x;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = blockDefinition.startPosition.z;
-
-                block.startRotation.y = 0;
-              } else if (color === 'green') {
-                block.startPosition.x = -blockDefinition.startPosition.x;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = -blockDefinition.startPosition.z;
-
-                block.startRotation.y = Math.PI;
-                block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
-              } else if (color === 'red') {
-                block.startPosition.x = -blockDefinition.startPosition.z;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = blockDefinition.startPosition.x;
-
-                block.startRotation.y = Math.PI + Math.PI / 2;
-                block.userData.layout = rotateCounterclockwise(block.userData.layout);
-                block.isRotated = true;
-              } else if (color === 'yellow') {
-                block.startPosition.x = blockDefinition.startPosition.z;
-                block.startPosition.y = blockDefinition.startPosition.y;
-                block.startPosition.z = -blockDefinition.startPosition.x;
-
-                block.startRotation.y = Math.PI / 2;
-                block.userData.layout = rotateClockwise(block.userData.layout);
-                block.isRotated = true;
-              }
-
-              block.position.x = block.startPosition.x;
-              block.position.y = block.startPosition.y;
-              block.position.z = block.startPosition.z;
-
-              block.rotation.y = block.startRotation.y;
-
-              block.castShadow = true;
-              block.receiveShadow = false;
-
-              blocks.push(block);
-
-              scene.add(block);
             }
 
+            block.startPosition = new THREE.Vector3();
+            block.startRotation = new THREE.Vector3();
+            block.isRotated = false;
+
+            if (color === 'blue') {
+              block.startPosition.x = blockDefinition.startPosition.x;
+              block.startPosition.y = blockDefinition.startPosition.y;
+              block.startPosition.z = blockDefinition.startPosition.z;
+
+              block.startRotation.y = 0;
+            } else if (color === 'green') {
+              block.startPosition.x = -blockDefinition.startPosition.x;
+              block.startPosition.y = blockDefinition.startPosition.y;
+              block.startPosition.z = -blockDefinition.startPosition.z;
+
+              block.startRotation.y = Math.PI;
+              block.userData.layout = rotateClockwise(rotateClockwise(block.userData.layout));
+            } else if (color === 'red') {
+              block.startPosition.x = -blockDefinition.startPosition.z;
+              block.startPosition.y = blockDefinition.startPosition.y;
+              block.startPosition.z = blockDefinition.startPosition.x;
+
+              block.startRotation.y = Math.PI + Math.PI / 2;
+              block.userData.layout = rotateCounterclockwise(block.userData.layout);
+              block.isRotated = true;
+            } else if (color === 'yellow') {
+              block.startPosition.x = blockDefinition.startPosition.z;
+              block.startPosition.y = blockDefinition.startPosition.y;
+              block.startPosition.z = -blockDefinition.startPosition.x;
+
+              block.startRotation.y = Math.PI / 2;
+              block.userData.layout = rotateClockwise(block.userData.layout);
+              block.isRotated = true;
+            }
+
+            block.position.x = block.startPosition.x;
+            block.position.y = block.startPosition.y;
+            block.position.z = block.startPosition.z;
+
+            block.rotation.y = block.startRotation.y;
+
+            block.castShadow = true;
+            block.receiveShadow = false;
+
+            blocks.push(block);
+
+            scene.add(block);
+
+            // update the state.blocks
+            // TODO: Left off here
+            $rootScope.state.blocks.push({
+              id: color + '-' + blockDefinitions.id,
+              layout: block.userData.layout,
+              startPosition: {
+                x: block.startPosition.x,
+                y: block.startPosition.y,
+                z: block.startPosition.z
+              },
+              startRotation: {
+                x: block.startRotation.x,
+                y: block.startRotation.y,
+                z: block.startRotation.z
+              },
+              position: {
+                x: block.position.x,
+                y: block.position.y,
+                z: block.position.z
+              },
+              rotation: {
+                x: block.rotation.x,
+                y: block.rotation.y,
+                z: block.rotation.z
+              },
+              isRotated: block.isRotated
+            });
           }
 
-          //------------------------------------------------------------------
-          // Interaction
-          //------------------------------------------------------------------
-          raycaster = new THREE.Raycaster();
-          mouse = new THREE.Vector2();
-          plane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
-          offset = new THREE.Vector3();
-          intersection = new THREE.Vector3();
+        }
 
-          function mousemove(e) {
-            var
-              intersect,
-              intersects,
-              // i, il,
-              // j, jl,
-              layoutWidth,
-              layoutHeight;
+        //------------------------------------------------------------------
+        // Interaction
+        //------------------------------------------------------------------
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+        plane = new THREE.Plane(new THREE.Vector3(0, 1, 0));
+        offset = new THREE.Vector3();
+        intersection = new THREE.Vector3();
 
-            e.preventDefault();
+        function mousemove(e) {
+          var
+            intersect,
+            intersects,
+            // i, il,
+            // j, jl,
+            layoutWidth,
+            layoutHeight;
 
-            mouse.x = (event.clientX / WIDTH) * 2 - 1;
-            mouse.y = -(event.clientY / HEIGHT) * 2 + 1;
+          e.preventDefault();
 
-            xIndex = null;
-            zIndex = null;
+          mouse.x = (e.clientX / WIDTH) * 2 - 1;
+          mouse.y = -(e.clientY / HEIGHT) * 2 + 1;
 
-            raycaster.setFromCamera(mouse, camera);
+          xIndex = null;
+          zIndex = null;
 
-            if (selectedSquare && selectedBlock) {
-              // TODO: put boundaries on how far you can move the block so that
-              // a) It doesn't get lost somewhere and 
-              // b) You can't move it when it isn't your turn
-              
-              // move along the x and z plane
-              if (raycaster.ray.intersectPlane(plane, intersection)) {
-                selectedBlock.position.copy(intersection.sub(offset));
+          raycaster.setFromCamera(mouse, camera);
 
-                layoutWidth = selectedBlock.userData.layout.length;
-                layoutHeight = selectedBlock.userData.layout[0].length;
+          if (selectedSquare && selectedBlock) {
+            // TODO: put boundaries on how far you can move the block so that
+            // a) It doesn't get lost somewhere and 
+            // b) You can't move it when it isn't your turn
+            
+            // move along the x and z plane
+            if (raycaster.ray.intersectPlane(plane, intersection)) {
+              selectedBlock.position.copy(intersection.sub(offset));
 
-                xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
-                zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
+              layoutWidth = selectedBlock.userData.layout.length;
+              layoutHeight = selectedBlock.userData.layout[0].length;
 
-                scene.remove(hintBlock);
+              xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
+              zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
 
-                // reset previous hover
-                // for (i = 0, il = board.length; i < il; i++) {
-                //   for (j = 0, jl = board[i].length; j < jl; j++) {
-                //     if (board[i][j].previousColor) {
-                //       board[i][j].material.color = board[i][j].previousColor;
-                //       board[i][j].previousColor = null;
+              // TODO: Remove hintBlock from this section and instead put it in another function to call in animate
+              // Reason is so that we can update the hint when someone else is moving their block...
+              scene.remove(hintBlock);
+
+              // reset previous hover
+              // for (i = 0, il = board.length; i < il; i++) {
+              //   for (j = 0, jl = board[i].length; j < jl; j++) {
+              //     if (board[i][j].previousColor) {
+              //       board[i][j].material.color = board[i][j].previousColor;
+              //       board[i][j].previousColor = null;
+              //     }
+              //   }
+              // }
+              // if (boardSquareMeshHovered) {
+              //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
+              // }
+
+              if (
+                board[xIndex] &&
+                board[xIndex][zIndex]
+              ) {
+                boardSquareMeshHovered = board[xIndex][zIndex];
+
+                // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+                //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+                //     if (
+                //       board[xIndex + i] &&
+                //       board[xIndex + i][zIndex + j] &&
+                //       selectedBlock.userData.layout[i][j]
+                //     ) {
+                //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
+                //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
                 //     }
                 //   }
                 // }
-                // if (boardSquareMeshHovered) {
-                //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
-                // }
+                // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
+                // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
 
-                if (
-                  board[xIndex] &&
-                  board[xIndex][zIndex]
-                ) {
-                  boardSquareMeshHovered = board[xIndex][zIndex];
+                // show the hint
+                if (canDrop(selectedBlock, xIndex, zIndex)) {
+                  hintBlock = selectedBlock.clone();
 
-                  // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
-                  //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
-                  //     if (
-                  //       board[xIndex + i] &&
-                  //       board[xIndex + i][zIndex + j] &&
-                  //       selectedBlock.userData.layout[i][j]
-                  //     ) {
-                  //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
-                  //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
-                  //     }
-                  //   }
-                  // }
-                  // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
-                  // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
+                  hintBlock.position.copy(boardSquareMeshHovered.position);
+                  hintBlock.position.x = hintBlock.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+                  hintBlock.position.z = hintBlock.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+                  hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH / 2;
 
-                  // show the hint
-                  if (canDrop(selectedBlock, xIndex, zIndex)) {
-                    hintBlock = selectedBlock.clone();
-
-                    hintBlock.position.copy(boardSquareMeshHovered.position);
-                    hintBlock.position.x = hintBlock.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
-                    hintBlock.position.z = hintBlock.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
-                    hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH / 2;
-
-                    // if (selectedBlock.isUpsideDown) {
-                    //   hintBlock.position.y = hintBlock.position.y + SQUARE_DEPTH;
-                    // }
-
-                    scene.add(hintBlock);
-                  }
-                    
+                  scene.add(hintBlock);
                 }
-
+                  
               }
 
-            } else {
-              // TODO: Transform an object when hovered
-
-              intersects = raycaster.intersectObjects(blocks, true);
-
-              if (intersects.length > 0) {
-                intersect = intersects[0];
-
-                if (intersect.object.parent) {
-                  intersected = intersect.object.parent;
-                } else {
-                  intersected = intersect.object;
-                }
-
-                container.style.cursor = 'move';
-
-              } else {
-                intersected = null;
-
-                container.style.cursor = 'auto';
-              }
             }
-              
-          }
 
-          function mousedown(e) {
-            var
-              intersect,
-              intersects;
-
-            e.preventDefault();
-
-            // NOTE: mouse.x and mouse.y should already be set because it was set above
-
-            raycaster.setFromCamera(mouse, camera);
+          } else {
+            // TODO: Transform an object when hovered
 
             intersects = raycaster.intersectObjects(blocks, true);
 
             if (intersects.length > 0) {
               intersect = intersects[0];
 
-              // disable zoom, pan, etc. while dragging
-              controls.enabled = false;
-
-              // TODO: Disable movement if 
-              // a) it isn't your blocks or 
-              // b) it isn't your turn to move the shared one or
-              // c) you already dropped your block
-
-              selectedSquare = intersect.object;
               if (intersect.object.parent) {
-                selectedBlock = intersect.object.parent;
+                intersected = intersect.object.parent;
+              } else {
+                intersected = intersect.object;
               }
 
-              if (raycaster.ray.intersectPlane(plane, intersection)) {
-                offset.copy(intersection).sub(selectedBlock.position);
-              }
+              container.style.cursor = 'move';
+
+            } else {
+              intersected = null;
+
+              container.style.cursor = 'auto';
+            }
+          }
+            
+        }
+
+        function mousedown(e) {
+          var
+            intersect,
+            intersects;
+
+          e.preventDefault();
+
+          // NOTE: mouse.x and mouse.y should already be set because it was set above
+
+          raycaster.setFromCamera(mouse, camera);
+
+          intersects = raycaster.intersectObjects(blocks, true);
+
+          if (intersects.length > 0) {
+            intersect = intersects[0];
+
+            // disable zoom, pan, etc. while dragging
+            controls.enabled = false;
+
+            // TODO: Disable movement if 
+            // a) it isn't your blocks or 
+            // b) it isn't your turn to move the shared one or
+            // c) you already dropped your block
+
+            selectedSquare = intersect.object;
+            if (intersect.object.parent) {
+              selectedBlock = intersect.object.parent;
             }
 
-            container.style.cursor = 'move';
+            if (raycaster.ray.intersectPlane(plane, intersection)) {
+              offset.copy(intersection).sub(selectedBlock.position);
+            }
           }
 
-          function mouseup(e) {
-            var
-              i, il,
-              layoutWidth,
-              layoutHeight,
-              originalPosition,
-              originalRotation;
+          container.style.cursor = 'move';
+        }
 
-            e.preventDefault();
+        function mouseup(e) {
+          var
+            i, il,
+            layoutWidth,
+            layoutHeight,
+            originalPosition,
+            originalRotation;
 
-            controls.enabled = true;
+          e.preventDefault();
 
-            if (
-              selectedSquare &&
-              selectedBlock
-            ) {
-              if (canDrop(selectedBlock, xIndex, zIndex)) {
+          controls.enabled = true;
 
-                boardSquareMeshHovered = board[xIndex][zIndex];
+          if (
+            selectedSquare &&
+            selectedBlock
+          ) {
+            if (canDrop(selectedBlock, xIndex, zIndex)) {
 
-                for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
-                  for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
-                    if (selectedBlock.userData.layout[i][j]) {
-                      board[xIndex + i][zIndex + j].userData.block = selectedBlock;
-                    }
+              boardSquareMeshHovered = board[xIndex][zIndex];
+
+              for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+                for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+                  if (selectedBlock.userData.layout[i][j]) {
+                    board[xIndex + i][zIndex + j].userData.block = selectedBlock;
                   }
                 }
-
-                // animate
-                // selectedBlock.position.x = boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
-                // selectedBlock.position.z = boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
-                // selectedBlock.position.y = boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2;
-                layoutWidth = selectedBlock.userData.layout.length;
-                layoutHeight = selectedBlock.userData.layout[0].length;
-
-                dropTween = new TWEEN.Tween(selectedBlock.position)
-                  .to({
-                      x: boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2),
-                      z: boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2),
-                      y: boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2
-                    }, 200)
-                  .easing(TWEEN.Easing.Bounce.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
-
-                blocks.splice(blocks.indexOf(selectedBlock), 1);
-
-                selectedSquare = null;
-                selectedBlock = null;
-
-                scene.remove(hintBlock);
-
-              } else {
-
-                // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
-                if (
-                  (
-                    selectedBlock.position.x > 2.2 &&
-                    selectedBlock.position.x < 8.0
-                  ) && (
-                    selectedBlock.position.z < 2.4 &&
-                    selectedBlock.position.z > -2.4
-                  )
-                ) {
-                  selectedBlock.startPosition.x = selectedBlock.position.x;
-                  selectedBlock.startPosition.z = selectedBlock.position.z;
-                  selectedBlock.startRotation = selectedBlock.rotation;
-                }
-
-                // move it back to original position and rotation
-                originalPosition = selectedBlock.startPosition;
-                originalRotation = selectedBlock.startRotation;
-                
-                dropTween = new TWEEN.Tween(selectedBlock.position)
-                  .to({
-                      x: originalPosition.x,
-                      z: originalPosition.z,
-                      y: originalPosition.y
-                    }, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
-
-                new TWEEN.Tween(selectedBlock.rotation)
-                  .to({
-                      y: originalRotation.y,
-                      z: originalRotation.z
-                    }, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    dropTween = null;
-                  })
-                  .start();
               }
-            }
 
-            if (intersected) {
+              // animate
+              // selectedBlock.position.x = boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2);
+              // selectedBlock.position.z = boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2);
+              // selectedBlock.position.y = boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2;
+              layoutWidth = selectedBlock.userData.layout.length;
+              layoutHeight = selectedBlock.userData.layout[0].length;
+
+              dropTween = new TWEEN.Tween(selectedBlock.position)
+                .to({
+                    x: boardSquareMeshHovered.position.x + ((layoutWidth * SQUARE_WIDTH) / 2) - (SQUARE_WIDTH / 2),
+                    z: boardSquareMeshHovered.position.z + ((layoutHeight * SQUARE_HEIGHT) / 2) - (SQUARE_HEIGHT / 2),
+                    y: boardSquareMeshHovered.position.y + SQUARE_DEPTH / 2
+                  }, 200)
+                .easing(TWEEN.Easing.Bounce.Out)
+                .onComplete(function () {
+                  dropTween = null;
+                })
+                .start();
+
+              blocks.splice(blocks.indexOf(selectedBlock), 1);
+
               selectedSquare = null;
               selectedBlock = null;
-            }
-          }
 
-          function keydown(e) {
-            var
-              zRotation,
-              yRotation,
-              blockReference;
+              scene.remove(hintBlock);
 
-            e.preventDefault();
+            } else {
 
-            if (selectedBlock && !rotationTween) {
-
-              // maintain a referenced to the block
-              // in case in the middle of the tween the
-              // selectedBlock gets dereferenced by letting
-              // go of the mousedown
-              blockReference = selectedBlock;
-
-              // left
-              if (e.keyCode === 37) {
-
-                blockReference.isRotated = !blockReference.isRotated;
-                blockReference.userData.layout = rotateClockwise(blockReference.userData.layout);
-
-                // animation
-                yRotation = blockReference.rotation.y;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({y: yRotation + Math.PI/2}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // up
-              } else if (e.keyCode === 38) {
-
-                blockReference.isUpsideDown = !blockReference.isUpsideDown;
-                if (blockReference.isRotated) {
-                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
-                } else {
-                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
-                }
-
-                // animation
-                zRotation = blockReference.rotation.z;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({z: zRotation + Math.PI}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // right
-              } else if (e.keyCode === 39) {
-
-                blockReference.isRotated = !blockReference.isRotated;
-                blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
-
-                // animation
-                yRotation = blockReference.rotation.y;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({y: yRotation - Math.PI/2}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
-
-              // down
-              } else if (e.keyCode === 40) {
-
-                blockReference.isUpsideDown = !blockReference.isUpsideDown;
-                if (blockReference.isRotated) {
-                  blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
-                } else {
-                  blockReference.userData.layout = flipVertical(blockReference.userData.layout);
-                }
-
-                // animation
-                zRotation = blockReference.rotation.z;
-
-                rotationTween = new TWEEN.Tween(blockReference.rotation)
-                  .to({z: zRotation - Math.PI}, 200)
-                  .easing(TWEEN.Easing.Exponential.Out)
-                  .onComplete(function () {
-                    rotationTween = null;
-                    blockReference = null;
-                  })
-                  .start();
+              // if we are just moving it around in space, then leave it how it is and reset the startPosition and startRotation
+              if (
+                (
+                  selectedBlock.position.x > 2.2 &&
+                  selectedBlock.position.x < 8.0
+                ) && (
+                  selectedBlock.position.z < 2.4 &&
+                  selectedBlock.position.z > -2.4
+                )
+              ) {
+                selectedBlock.startPosition.x = selectedBlock.position.x;
+                selectedBlock.startPosition.z = selectedBlock.position.z;
+                selectedBlock.startRotation = selectedBlock.rotation;
               }
+
+              // move it back to original position and rotation
+              originalPosition = selectedBlock.startPosition;
+              originalRotation = selectedBlock.startRotation;
               
+              dropTween = new TWEEN.Tween(selectedBlock.position)
+                .to({
+                    x: originalPosition.x,
+                    z: originalPosition.z,
+                    y: originalPosition.y
+                  }, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  dropTween = null;
+                })
+                .start();
+
+              new TWEEN.Tween(selectedBlock.rotation)
+                .to({
+                    y: originalRotation.y,
+                    z: originalRotation.z
+                  }, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  dropTween = null;
+                })
+                .start();
             }
-
           }
 
-          renderer.domElement.addEventListener('mousemove', mousemove, false);
-          renderer.domElement.addEventListener('mousedown', mousedown, false);
-          renderer.domElement.addEventListener('mouseup', mouseup, false);
-          document.addEventListener('keydown', keydown, false);
+          if (intersected) {
+            selectedSquare = null;
+            selectedBlock = null;
+          }
+        }
 
-          //------------------------------------------------------------------
-          // Animate and Render
-          //------------------------------------------------------------------
+        function keydown(e) {
+          var
+            zRotation,
+            yRotation,
+            blockReference;
 
-          function render() {
-            controls.update();
-            renderer.render(scene,camera);
+          e.preventDefault();
+
+          if (selectedBlock && !rotationTween) {
+
+            // maintain a referenced to the block
+            // in case in the middle of the tween the
+            // selectedBlock gets dereferenced by letting
+            // go of the mousedown
+            blockReference = selectedBlock;
+
+            // left or a
+            if (e.keyCode === 37 || e.keyCode === 65) {
+
+              blockReference.isRotated = !blockReference.isRotated;
+              blockReference.userData.layout = rotateClockwise(blockReference.userData.layout);
+
+              // animation
+              yRotation = blockReference.rotation.y;
+
+              rotationTween = new TWEEN.Tween(blockReference.rotation)
+                .to({y: yRotation + Math.PI/2}, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  rotationTween = null;
+                  blockReference = null;
+                })
+                .start();
+
+            // up or w
+            } else if (e.keyCode === 38 || e.keyCode === 87) {
+
+              if (blockReference.isRotated) {
+                blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+              } else {
+                blockReference.userData.layout = flipVertical(blockReference.userData.layout);
+              }
+
+              // animation
+              zRotation = blockReference.rotation.z;
+
+              rotationTween = new TWEEN.Tween(blockReference.rotation)
+                .to({z: zRotation + Math.PI}, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  rotationTween = null;
+                  blockReference = null;
+                })
+                .start();
+
+            // right
+            } else if (e.keyCode === 39 || e.keyCode === 83) {
+
+              blockReference.isRotated = !blockReference.isRotated;
+              blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
+
+              // animation
+              yRotation = blockReference.rotation.y;
+
+              rotationTween = new TWEEN.Tween(blockReference.rotation)
+                .to({y: yRotation - Math.PI/2}, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  rotationTween = null;
+                  blockReference = null;
+                })
+                .start();
+
+            // down
+            } else if (e.keyCode === 40 || e.keyCode === 68) {
+
+              if (blockReference.isRotated) {
+                blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);
+              } else {
+                blockReference.userData.layout = flipVertical(blockReference.userData.layout);
+              }
+
+              // animation
+              zRotation = blockReference.rotation.z;
+
+              rotationTween = new TWEEN.Tween(blockReference.rotation)
+                .to({z: zRotation - Math.PI}, 200)
+                .easing(TWEEN.Easing.Exponential.Out)
+                .onComplete(function () {
+                  rotationTween = null;
+                  blockReference = null;
+                })
+                .start();
+            }
+            
           }
 
-          function animate(time) {
-            requestAnimationFrame(animate);
+        }
 
-            TWEEN.update(time);
-            render();
+        renderer.domElement.addEventListener('mousemove', mousemove, false);
+        renderer.domElement.addEventListener('mousedown', mousedown, false);
+        renderer.domElement.addEventListener('mouseup', mouseup, false);
+        document.addEventListener('keydown', keydown, false);
+
+        //------------------------------------------------------------------
+        // Animate and Render
+        //------------------------------------------------------------------
+
+        function render() {
+          controls.update();
+          renderer.render(scene,camera);
+        }
+
+        function animate(time) {
+          requestAnimationFrame(animate);
+
+          // don't start doing anything until we have initialized
+          if (
+            !$rootScope ||
+            !$rootScope.state || 
+            !$rootScope.state.game || 
+            !$rootScope.state.game.currentStage ||
+            $rootScope.state.game.currentStage !== STAGES.PLAY
+          ) {
+            return;
           }
 
-          container.appendChild(renderer.domElement);
+          TWEEN.update(time);
+          render();
+          
+        }
 
-          animate();
+        container.appendChild(renderer.domElement);
 
+        animate();
+
+        $rootScope.syncBoardWithState = function () {
+          // TODO:
         };
 
+        $rootScope.syncBlocksWithState = function () {
+          // TODO:
+        };
 
       }]);
     

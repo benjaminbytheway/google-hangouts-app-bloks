@@ -79,16 +79,6 @@ define('app', [
         if (!$rootScope.state.game.currentStage) {
           $rootScope.state.game.currentStage = STAGES.LOBBY;
         }
-
-        // players
-        if (!$rootScope.state.players) {
-          $rootScope.state.players = [];
-        }
-
-        // colors
-        if (!$rootScope.state.colors) {
-          $rootScope.state.colors = {};
-        }
         
         //--------------------------------------------------------------------
         // get notifications from others in the hangout
@@ -180,6 +170,11 @@ define('app', [
         // Players
         //--------------------------------------------------------------------
         // TODO: Move this into it's own peice of code
+
+        // players
+        if (!$rootScope.state.players) {
+          $rootScope.state.players = [];
+        }
 
         $rootScope.computers = 0;
 
@@ -496,41 +491,53 @@ define('app', [
         // Stage 2
         //--------------------------------------------------------------------
 
+        // colors
+        if (!$rootScope.state.colors) {
+          $rootScope.state.colors = {
+            blue: {
+              color: 'blue',
+              label: 'Blue',
+              hex: 0x0000ff,
+            },
+            green: {
+              color: 'green',
+              label: 'Green',
+              hex: 0x00ff00,
+            },
+            yellow: {
+              color: 'yellow',
+              label: 'Yellow',
+              hex: 0xffff00,
+            },
+            red: {
+              color: 'red',
+              label: 'Red',
+              hex: 0xff0000
+            },
+          };
+        }
+
         $rootScope.chooseColor = function (color) {
           var
             players,
+            colorAgent,
             colors,
             random,
             player,
             order,
-            i, l,
-            map = {
-              'blue': 'Blue',
-              'red': 'Red',
-              'green': 'Green',
-              'yellow': 'Yellow'
-            },
-            hexColorMap = {
-              blue: 0x0000ff,
-              green: 0x00ff00,
-              yellow: 0xffff00,
-              red: 0xff0000
-            };
+            i, l;
 
           colors = $rootScope.state.colors;
           players = $rootScope.state.players;
 
+          // assign the color that they chose
           if (
             $rootScope.myRemainingColors() && 
-            !colors[color]
+            !colors[color].id
           ) {
-            colors[color] = {
-              color: color,
-              type: 1,
-              id: $rootScope.me.person.id,
-              label: map[color],
-              hex: hexColorMap[color]
-            };
+            colorAgent = colors[color];
+            colorAgent.type = 1;
+            colorAgent.id = $rootScope.me.person.id;
           }
 
           // assign the last color
@@ -544,8 +551,9 @@ define('app', [
 
             // get the last remaining color that hasn't 
             // been assigned
-            for (color in map) {
-              if (!colors[color]) {
+            for (color in colors) {
+              colorAgent = colors[color];
+              if (!colorAgent.id) {
                 break;
               }
             }
@@ -566,16 +574,10 @@ define('app', [
             }
             
             // finally add all of that to the colors object
-            colors[color] = {
-              color: color,
-              type: 2,
-              id: order[0],
-              order: order,
-              current: 0,
-              label: map[color],
-              hex: hexColorMap[color]
-            };
-
+            colorAgent.type = 2;
+            colorAgent.id = order[0];
+            colorAgent.order = order;
+            colorAgent.current = 0;
           }
         };
 
@@ -681,7 +683,22 @@ define('app', [
         };
 
         $rootScope.displayChoosenColors = function () {
-          return Object.keys($rootScope.state.colors);
+          var 
+            color,
+            colors,
+            colorAgent,
+            result = [];
+
+          colors = $rootScope.state.colors;
+
+          for (color in colors) {
+            colorAgent = colors[color];
+            if (colorAgent.id) {
+              result.push(colorAgent.color);
+            }
+          }
+
+          return result;
         };
 
         $rootScope.displaySharedColor = function () {
@@ -1347,60 +1364,65 @@ define('app', [
 
         $rootScope.syncBlock = function (block, blockUpdate, fromState) {
 
+          console.log('here');
+          console.log(block);
+          console.log(blockUpdate);
+          return;
+
           // layout
-          if (fromState) {
-            block.userData.layout = blockUpdate.l;
+          // if (fromState) {
+          //   block.userData.layout = blockUpdate.l;
 
-            // position
-            block.position.x = blockUpdate.p.x;
-            block.position.y = blockUpdate.p.y;
-            block.position.z = blockUpdate.p.z;
+          //   // position
+          //   block.position.x = blockUpdate.p.x;
+          //   block.position.y = blockUpdate.p.y;
+          //   block.position.z = blockUpdate.p.z;
 
-            // rotation
-            block.rotation.x = blockUpdate.r.x;
-            block.rotation.y = blockUpdate.r.y;
-            block.rotation.z = blockUpdate.r.z;
+          //   // rotation
+          //   block.rotation.x = blockUpdate.r.x;
+          //   block.rotation.y = blockUpdate.r.y;
+          //   block.rotation.z = blockUpdate.r.z;
 
-            // startPosition
-            block.startPosition.x = blockUpdate.sp.x;
-            block.startPosition.y = blockUpdate.sp.y;
-            block.startPosition.z = blockUpdate.sp.z;
+          //   // startPosition
+          //   block.startPosition.x = blockUpdate.sp.x;
+          //   block.startPosition.y = blockUpdate.sp.y;
+          //   block.startPosition.z = blockUpdate.sp.z;
 
-            // startRotation
-            block.startRotation.x = blockUpdate.sr.x;
-            block.startRotation.y = blockUpdate.sr.y;
-            block.startRotation.z = blockUpdate.sr.z;
+          //   // startRotation
+          //   block.startRotation.x = blockUpdate.sr.x;
+          //   block.startRotation.y = blockUpdate.sr.y;
+          //   block.startRotation.z = blockUpdate.sr.z;
 
-            // isRotated
-            block.isRotated = blockUpdate.ir;
+          //   // isRotated
+          //   block.isRotated = blockUpdate.ir;
 
-          } else {
-            block.l = blockUpdate.userData.layout;
+          // } else {
+          //   block.l = blockUpdate.userData.layout;
 
-            // position
-            block.p.x = blockUpdate.position.x;
-            block.p.y = blockUpdate.position.y;
-            block.p.z = blockUpdate.position.z;
+          //   // position
+          //   block.p.x = blockUpdate.position.x;
+          //   block.p.y = blockUpdate.position.y;
+          //   block.p.z = blockUpdate.position.z;
 
-            // rotation
-            block.r.x = blockUpdate.rotation.x;
-            block.r.y = blockUpdate.rotation.y;
-            block.r.z = blockUpdate.rotation.z;
+          //   // rotation
+          //   block.r.x = blockUpdate.rotation.x;
+          //   block.r.y = blockUpdate.rotation.y;
+          //   block.r.z = blockUpdate.rotation.z;
 
-            // startPosition
-            block.sp.x = blockUpdate.startPosition.x;
-            block.sp.y = blockUpdate.startPosition.y;
-            block.sp.z = blockUpdate.startPosition.z;
+          //   // startPosition
+          //   block.sp.x = blockUpdate.startPosition.x;
+          //   block.sp.y = blockUpdate.startPosition.y;
+          //   block.sp.z = blockUpdate.startPosition.z;
 
-            // startRotation
-            block.sr.x = blockUpdate.startRotation.x;
-            block.sr.y = blockUpdate.startRotation.y;
-            block.sr.z = blockUpdate.startRotation.z;
+          //   // startRotation
+          //   block.sr.x = blockUpdate.startRotation.x;
+          //   block.sr.y = blockUpdate.startRotation.y;
+          //   block.sr.z = blockUpdate.startRotation.z;
 
-            // isRotated
-            block.ir = blockUpdate.isRotated;
+          //   // isRotated
+          //   block.ir = blockUpdate.isRotated;
 
-          }
+          // }
         };
 
         //------------------------------------------------------------------
@@ -1683,7 +1705,7 @@ define('app', [
 
             block = new THREE.Group();
 
-            block.userData.id = color + '-' + blockDefinitions.id;
+            block.userData.id = color + '-' + blockDefinition.id;
             block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
             block.userData.squareCount = blockDefinition.squareCount;
             block.userData.colorAgent = colorAgent;
@@ -1806,6 +1828,9 @@ define('app', [
             blocks.push(block);
 
             scene.add(block);
+
+            // TODO: REMOVE DEBUGGING
+            window.blocks = blocks;
 
             // update the state.blocks if we don't already have everything
             if (!$rootScope.getBlockById(block.userData.id)) {
@@ -2048,7 +2073,7 @@ define('app', [
                 .easing(TWEEN.Easing.Bounce.Out)
                 .onComplete(function () {
                   dropTween = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
                 })
                 .start();
 
@@ -2089,7 +2114,7 @@ define('app', [
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
                   dropTween = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
                 })
                 .start();
 
@@ -2105,7 +2130,7 @@ define('app', [
                 .start();
             }
 
-            $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.id), selectedBlock, false);
+            $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
           }
 
           if (intersected) {
@@ -2145,7 +2170,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
@@ -2167,7 +2192,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
@@ -2186,7 +2211,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
@@ -2208,7 +2233,7 @@ define('app', [
                 .onComplete(function () {
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.id), blockReference, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
             }

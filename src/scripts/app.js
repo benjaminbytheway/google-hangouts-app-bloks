@@ -626,25 +626,25 @@ define('app', [
         if (!$rootScope.state.colors) {
           $rootScope.state.colors = {
             blue: {
-              id: 'b',
+              i: 'b',
               color: 'blue',
               label: 'Blue',
               hex: 0x0000ff,
             },
             green: {
-              id: 'g',
+              i: 'g',
               color: 'green',
               label: 'Green',
               hex: 0x00ff00,
             },
             yellow: {
-              id: 'y',
+              i: 'y',
               color: 'yellow',
               label: 'Yellow',
               hex: 0xffff00,
             },
             red: {
-              id: 'r',
+              i: 'r',
               color: 'red',
               label: 'Red',
               hex: 0xff0000
@@ -1929,7 +1929,7 @@ define('app', [
 
             block = new THREE.Group();
 
-            block.userData.id = colorAgent.id + '-' + blockDefinition.id;
+            block.userData.id = colorAgent.i + '-' + blockDefinition.id;
             block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
             block.userData.squareCount = blockDefinition.squareCount;
             block.userData.colorAgent = colorAgent;

@@ -93,6 +93,11 @@ define('app', [
         if (!$rootScope.state.game.currentStage) {
           $rootScope.state.game.currentStage = STAGES.LOBBY;
         }
+
+        // players
+        if (!$rootScope.state.players) {
+          $rootScope.state.players = [];
+        }
         
         //--------------------------------------------------------------------
         // get notifications from others in the hangout
@@ -203,6 +208,18 @@ define('app', [
           }
         }, true);
 
+        $rootScope.$watch('state.host', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.host) {
+              gapi.hangout.data.submitDelta({
+                host: serialize($rootScope.state.host)
+              });
+            }
+          }
+        }, true);
+
         $rootScope.$watch('state.colors', function (newValue, oldValue, scope) {
           if (supressSubmitDelta) {
             supressSubmitDelta = false;
@@ -289,11 +306,6 @@ define('app', [
         // Players
         //--------------------------------------------------------------------
         // TODO: Move this into it's own peice of code
-
-        // players
-        if (!$rootScope.state.players) {
-          $rootScope.state.players = [];
-        }
 
         $rootScope.computers = 0;
 

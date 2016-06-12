@@ -23,22 +23,36 @@ define('app', [
 
         return stateParsed;
       },
-      serializeState = function (state) {
-        var 
-          property,
-          stateSerialized = {};
+      // serializeState = function (state) {
+      //   var 
+      //     property,
+      //     stateSerialized = {};
 
-        for (property in state) {
-          if (!state.hasOwnProperty(property)) {
-            continue;
-          }
+      //   for (property in state) {
+      //     if (!state.hasOwnProperty(property)) {
+      //       continue;
+      //     }
 
-          try {
-            stateSerialized[property] = JSON.stringify(state[property]);
-          } catch (e) {}
-        }
+      //     try {
+      //       stateSerialized[property] = JSON.stringify(state[property]);
+      //     } catch (e) {}
+      //   }
 
-        return stateSerialized;
+      //   return stateSerialized;
+      // },
+      // parse = function (value) {
+      //   try {
+      //     return JSON.parse(value);
+      //   } catch (e) {}
+
+      //   return null;
+      // },
+      serialize = function (value) {
+        try {
+          return JSON.stringify(value);
+        } catch (e) {}
+
+        return '';
       },
       STAGES = {
         LOBBY: 1, // waiting for game to start
@@ -119,7 +133,7 @@ define('app', [
           if (state.board) {
             $rootScope.syncBoardWithState();
           }
-          if (state.blocks) {
+          if (state.blocksBlue || state.blocksGreen || state.blocksRed || state.blocksYellow) {
             $rootScope.syncBlocksWithState();
           }
 
@@ -143,27 +157,132 @@ define('app', [
         //--------------------------------------------------------------------
         // notify others
         //--------------------------------------------------------------------
-        $rootScope.$watch('state', function (newValue, oldValue, scope) {
-          // console.log('---------------------$watch-------------------');
-          // console.log('OLD');
-          // console.log(oldValue);
-          // console.log('NEW');
-          // console.log(newValue);
+        // $rootScope.$watch('state', function (newValue, oldValue, scope) {
+        //   // console.log('---------------------$watch-------------------');
+        //   // console.log('OLD');
+        //   // console.log(oldValue);
+        //   // console.log('NEW');
+        //   // console.log(newValue);
 
-          // set who is writing
-          // $rootScope.state.writerId = $rootScope.me.person.id;
+        //   // set who is writing
+        //   // $rootScope.state.writerId = $rootScope.me.person.id;
 
-          // submit the changes
+        //   // submit the changes
+        //   if (supressSubmitDelta) {
+        //     supressSubmitDelta = false;
+        //   } else {
+        //     gapi.hangout.data.submitDelta(serializeState($rootScope.state));
+        //   }
+
+        //   // TODO: DEBUGGING (REMOVE)
+        //   window.state = $rootScope.state;
+
+        // }, true); // TODO: Figure out a way not to do object equality
+
+        $rootScope.$watch('state.game', function (newValue, oldValue, scope) {
           if (supressSubmitDelta) {
             supressSubmitDelta = false;
           } else {
-            gapi.hangout.data.submitDelta(serializeState($rootScope.state));
+            if ($rootScope.state && $rootScope.state.game) {
+              gapi.hangout.data.submitDelta({
+                game: serialize($rootScope.state.game)
+              });
+            }
           }
+        }, true);
 
-          // TODO: DEBUGGING (REMOVE)
-          window.state = $rootScope.state;
+        $rootScope.$watch('state.players', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.players) {
+              gapi.hangout.data.submitDelta({
+                players: serialize($rootScope.state.players)
+              });
+            }
+          }
+        }, true);
 
-        }, true); // TODO: Figure out a way not to do object equality
+        $rootScope.$watch('state.colors', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.colors) {
+              gapi.hangout.data.submitDelta({
+                colors: serialize($rootScope.state.colors)
+              });
+            }
+          }
+        }, true);
+
+        $rootScope.$watch('state.board', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.board) {
+              gapi.hangout.data.submitDelta({
+                board: serialize($rootScope.state.board)
+              });
+            }
+          }
+        }, true);
+
+        $rootScope.$watch('state.blocksBlue', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.blocksBlue) {
+              gapi.hangout.data.submitDelta({
+                blocks: serialize($rootScope.state.blocksBlue)
+              });
+            }
+          }
+        }, true);
+
+        $rootScope.$watch('state.blocksGreen', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.blocksGreen) {
+              gapi.hangout.data.submitDelta({
+                blocks: serialize($rootScope.state.blocksGreen)
+              });
+            }
+          }
+        }, true);
+
+        $rootScope.$watch('state.blocksRed', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.blocksRed) {
+              gapi.hangout.data.submitDelta({
+                blocks: serialize($rootScope.state.blocksRed)
+              });
+            }
+          }
+        }, true);
+
+        $rootScope.$watch('state.blocksYellow', function (newValue, oldValue, scope) {
+          if (supressSubmitDelta) {
+            supressSubmitDelta = false;
+          } else {
+            if ($rootScope.state && $rootScope.state.blocksYellow) {
+              gapi.hangout.data.submitDelta({
+                blocks: serialize($rootScope.state.blocksYellow)
+              });
+            }
+          }
+        }, true);
+  
+        // gapi.hangout.data.sendMessage('');
+        // gapi.hangout.data.onMessageReceived.add(function (message) {
+        //   message = parse(message);
+
+        //   if (message) {
+
+        //   }
+        // });
 
 
         //--------------------------------------------------------------------
@@ -495,21 +614,25 @@ define('app', [
         if (!$rootScope.state.colors) {
           $rootScope.state.colors = {
             blue: {
+              id: 'b',
               color: 'blue',
               label: 'Blue',
               hex: 0x0000ff,
             },
             green: {
+              id: 'g',
               color: 'green',
               label: 'Green',
               hex: 0x00ff00,
             },
             yellow: {
+              id: 'y',
               color: 'yellow',
               label: 'Yellow',
               hex: 0xffff00,
             },
             red: {
+              id: 'r',
               color: 'red',
               label: 'Red',
               hex: 0xff0000
@@ -731,12 +854,32 @@ define('app', [
         }
 
         // blocks
-        if (!$rootScope.state.blocks) {
-          $rootScope.state.blocks = [];
+        if (
+          !$rootScope.state.blocksBlue
+        ) {
+          $rootScope.state.blocksBlue = [];
         } else {
           setTimeout(function () {
             $rootScope.syncBlocksWithState();
           }, 100);
+        }
+
+        if (
+          !$rootScope.state.blocksGreen
+        ) {
+          $rootScope.state.blocksGreen = [];
+        }
+
+        if (
+          !$rootScope.state.blocksRed
+        ) {
+          $rootScope.state.blocksRed = [];
+        }
+
+        if (
+          !$rootScope.state.blocksYellow
+        ) {
+          $rootScope.state.blocksYellow = [];
         }
 
         var
@@ -1309,7 +1452,34 @@ define('app', [
             block,
             blocks;
 
-          blocks = $rootScope.state.blocks;
+          blocks = $rootScope.state.blocksBlue;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            if (block.id === id) {
+              return block;
+            }
+          }
+
+          blocks = $rootScope.state.blocksGreen;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            if (block.id === id) {
+              return block;
+            }
+          }
+
+          blocks = $rootScope.state.blocksRed;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            if (block.id === id) {
+              return block;
+            }
+          }
+
+          blocks = $rootScope.state.blocksYellow;
 
           for (i = 0, il = blocks.length; i < il; i++) {
             block = blocks[i];
@@ -1354,7 +1524,29 @@ define('app', [
             block,
             blocks;
 
-          blocks = $rootScope.state.blocks;
+          blocks = $rootScope.state.blocksBlue;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          }
+
+          blocks = $rootScope.state.blocksGreen;
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          }
+
+          blocks = $rootScope.state.blocksRed;
+
+
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
+            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          }
+
+          blocks = $rootScope.state.blocksYellow;
 
           for (i = 0, il = blocks.length; i < il; i++) {
             block = blocks[i];
@@ -1364,65 +1556,84 @@ define('app', [
 
         $rootScope.syncBlock = function (block, blockUpdate, fromState) {
 
-          console.log('here');
-          console.log(block);
-          console.log(blockUpdate);
-          return;
-
           // layout
-          // if (fromState) {
-          //   block.userData.layout = blockUpdate.l;
+          if (fromState) {
+            block.userData.layout = blockUpdate.l;
 
-          //   // position
-          //   block.position.x = blockUpdate.p.x;
-          //   block.position.y = blockUpdate.p.y;
-          //   block.position.z = blockUpdate.p.z;
+            // position
+            // block.position.x = blockUpdate.p.x;
+            // block.position.y = blockUpdate.p.y;
+            // block.position.z = blockUpdate.p.z;
+            block.position.x = blockUpdate.p[0];
+            block.position.y = blockUpdate.p[1];
+            block.position.z = blockUpdate.p[2];
 
-          //   // rotation
-          //   block.rotation.x = blockUpdate.r.x;
-          //   block.rotation.y = blockUpdate.r.y;
-          //   block.rotation.z = blockUpdate.r.z;
+            // rotation
+            // block.rotation.x = blockUpdate.r.x;
+            // block.rotation.y = blockUpdate.r.y;
+            // block.rotation.z = blockUpdate.r.z;
+            block.rotation.x = blockUpdate.r[0];
+            block.rotation.y = blockUpdate.r[1];
+            block.rotation.z = blockUpdate.r[2];
 
-          //   // startPosition
-          //   block.startPosition.x = blockUpdate.sp.x;
-          //   block.startPosition.y = blockUpdate.sp.y;
-          //   block.startPosition.z = blockUpdate.sp.z;
+            // startPosition
+            // block.startPosition.x = blockUpdate.sp.x;
+            // block.startPosition.y = blockUpdate.sp.y;
+            // block.startPosition.z = blockUpdate.sp.z;
+            block.startPosition.x = blockUpdate.sp[0];
+            block.startPosition.y = blockUpdate.sp[1];
+            block.startPosition.z = blockUpdate.sp[2];
 
-          //   // startRotation
-          //   block.startRotation.x = blockUpdate.sr.x;
-          //   block.startRotation.y = blockUpdate.sr.y;
-          //   block.startRotation.z = blockUpdate.sr.z;
+            // startRotation
+            // block.startRotation.x = blockUpdate.sr.x;
+            // block.startRotation.y = blockUpdate.sr.y;
+            // block.startRotation.z = blockUpdate.sr.z;
+            block.startRotation.x = blockUpdate.sr[0];
+            block.startRotation.y = blockUpdate.sr[1];
+            block.startRotation.z = blockUpdate.sr[2];
 
-          //   // isRotated
-          //   block.isRotated = blockUpdate.ir;
+            // isRotated
+            block.isRotated = blockUpdate.ir;
 
-          // } else {
-          //   block.l = blockUpdate.userData.layout;
+          } else {
+            block.l = blockUpdate.userData.layout;
 
-          //   // position
-          //   block.p.x = blockUpdate.position.x;
-          //   block.p.y = blockUpdate.position.y;
-          //   block.p.z = blockUpdate.position.z;
+            // position
+            // block.p.x = Math.round(blockUpdate.position.x * 1000) / 1000;
+            // block.p.y = Math.round(blockUpdate.position.y * 1000) / 1000;
+            // block.p.z = Math.round(blockUpdate.position.z * 1000) / 1000;
+            block.p[0] = Math.round(blockUpdate.position.x * 1000) / 1000;
+            block.p[1] = Math.round(blockUpdate.position.y * 1000) / 1000;
+            block.p[2] = Math.round(blockUpdate.position.z * 1000) / 1000;
 
-          //   // rotation
-          //   block.r.x = blockUpdate.rotation.x;
-          //   block.r.y = blockUpdate.rotation.y;
-          //   block.r.z = blockUpdate.rotation.z;
+            // rotation
+            // block.r.x = Math.round(blockUpdate.rotation.x * 1000) / 1000;
+            // block.r.y = Math.round(blockUpdate.rotation.y * 1000) / 1000;
+            // block.r.z = Math.round(blockUpdate.rotation.z * 1000) / 1000;
+            block.r[0] = Math.round(blockUpdate.rotation.x * 1000) / 1000;
+            block.r[1] = Math.round(blockUpdate.rotation.y * 1000) / 1000;
+            block.r[2] = Math.round(blockUpdate.rotation.z * 1000) / 1000;
 
-          //   // startPosition
-          //   block.sp.x = blockUpdate.startPosition.x;
-          //   block.sp.y = blockUpdate.startPosition.y;
-          //   block.sp.z = blockUpdate.startPosition.z;
+            // startPosition
+            // block.sp.x = Math.round(blockUpdate.startPosition.x * 1000) / 1000;
+            // block.sp.y = Math.round(blockUpdate.startPosition.y * 1000) / 1000;
+            // block.sp.z = Math.round(blockUpdate.startPosition.z * 1000) / 1000;
+            block.sp[0] = Math.round(blockUpdate.startPosition.x * 1000) / 1000;
+            block.sp[1] = Math.round(blockUpdate.startPosition.y * 1000) / 1000;
+            block.sp[2] = Math.round(blockUpdate.startPosition.z * 1000) / 1000;
 
-          //   // startRotation
-          //   block.sr.x = blockUpdate.startRotation.x;
-          //   block.sr.y = blockUpdate.startRotation.y;
-          //   block.sr.z = blockUpdate.startRotation.z;
+            // startRotation
+            // block.sr.x = Math.round(blockUpdate.startRotation.x * 1000) / 1000;
+            // block.sr.y = Math.round(blockUpdate.startRotation.y * 1000) / 1000;
+            // block.sr.z = Math.round(blockUpdate.startRotation.z * 1000) / 1000;
+            block.sr[0] = Math.round(blockUpdate.startRotation.x * 1000) / 1000;
+            block.sr[1] = Math.round(blockUpdate.startRotation.y * 1000) / 1000;
+            block.sr[2] = Math.round(blockUpdate.startRotation.z * 1000) / 1000;
 
-          //   // isRotated
-          //   block.ir = blockUpdate.isRotated;
+            // isRotated
+            block.ir = blockUpdate.isRotated;
 
-          // }
+          }
         };
 
         //------------------------------------------------------------------
@@ -1665,7 +1876,7 @@ define('app', [
             }
             if (!$rootScope.state.board[i][j]) {
               $rootScope.state.board[i][j] = {
-                b: null
+                b: 0
               };
             }
           }
@@ -1695,7 +1906,8 @@ define('app', [
           layoutWidth,
           layoutHeight,
           row,
-          square;
+          square,
+          rootScopeBlocks;
 
         for (color in $rootScope.state.colors) {
           colorAgent = $rootScope.state.colors[color];
@@ -1705,7 +1917,7 @@ define('app', [
 
             block = new THREE.Group();
 
-            block.userData.id = color + '-' + blockDefinition.id;
+            block.userData.id = colorAgent.id + '-' + blockDefinition.id;
             block.userData.layout = JSON.parse(JSON.stringify(blockDefinition.layout));
             block.userData.squareCount = blockDefinition.squareCount;
             block.userData.colorAgent = colorAgent;
@@ -1836,29 +2048,59 @@ define('app', [
             if (!$rootScope.getBlockById(block.userData.id)) {
               console.log('didnt find it');
 
-              $rootScope.state.blocks.push({
+              if (color === 'blue') {
+                rootScopeBlocks = $rootScope.state.blocksBlue;
+              } else if (color === 'green') {
+                rootScopeBlocks = $rootScope.state.blocksGreen;
+              } else if (color === 'red') {
+                rootScopeBlocks = $rootScope.state.blocksRed;
+              } else if (color === 'yellow') {
+                rootScopeBlocks = $rootScope.state.blocksYellow;
+              }
+
+              rootScopeBlocks.push({
                 id: block.userData.id,
                 l: block.userData.layout,
-                sp: {
-                  x: block.startPosition.x,
-                  y: block.startPosition.y,
-                  z: block.startPosition.z
-                },
-                sr: {
-                  x: block.startRotation.x,
-                  y: block.startRotation.y,
-                  z: block.startRotation.z
-                },
-                p: {
-                  x: block.position.x,
-                  y: block.position.y,
-                  z: block.position.z
-                },
-                r: {
-                  x: block.rotation.x,
-                  y: block.rotation.y,
-                  z: block.rotation.z
-                },
+                // sp: {
+                //   x:  Math.round(block.startPosition.x * 1000) / 1000,
+                //   //y:  Math.round(block.startPosition.y * 1000) / 1000,
+                //   z:  Math.round(block.startPosition.z * 1000) / 1000
+                // },
+                // sr: {
+                //   //x:  Math.round(block.startRotation.x * 1000) / 1000,
+                //   y:  Math.round(block.startRotation.y * 1000) / 1000,
+                //   //z:  Math.round(block.startRotation.z * 1000) / 1000
+                // },
+                // p: {
+                //   x:  Math.round(block.position.x * 1000) / 1000,
+                //   y:  Math.round(block.position.y * 1000) / 1000,
+                //   z:  Math.round(block.position.z * 1000) / 1000
+                // },
+                // r: {
+                //   x:  Math.round(block.rotation.x * 1000) / 1000,
+                //   y:  Math.round(block.rotation.y * 1000) / 1000,
+                //   z:  Math.round(block.rotation.z * 1000) / 1000
+                sp: [
+                // },
+                  Math.round(block.startPosition.x * 1000) / 1000,
+                  Math.round(block.startPosition.y * 1000) / 1000,
+                  Math.round(block.startPosition.z * 1000) / 1000
+                ],
+                sr: [
+                  Math.round(block.startRotation.x * 1000) / 1000,
+                  Math.round(block.startRotation.y * 1000) / 1000,
+                  Math.round(block.startRotation.z * 1000) / 1000
+                ],
+                p: [
+                  Math.round(block.position.x * 1000) / 1000,
+                  Math.round(block.position.y * 1000) / 1000,
+                  Math.round(block.position.z * 1000) / 1000
+                ],
+                r: [
+                  Math.round(block.rotation.x * 1000) / 1000,
+                  Math.round(block.rotation.y * 1000) / 1000,
+                  Math.round(block.rotation.z * 1000) / 1000
+                ],
                 ir: block.isRotated
               });
 

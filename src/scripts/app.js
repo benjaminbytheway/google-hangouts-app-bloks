@@ -40,13 +40,13 @@ define('app', [
 
       //   return stateSerialized;
       // },
-      // parse = function (value) {
-      //   try {
-      //     return JSON.parse(value);
-      //   } catch (e) {}
+      parse = function (value) {
+        try {
+          return JSON.parse(value);
+        } catch (e) {}
 
-      //   return null;
-      // },
+        return null;
+      },
       serialize = function (value) {
         try {
           return JSON.stringify(value);
@@ -250,7 +250,7 @@ define('app', [
           } else {
             if ($rootScope.state && $rootScope.state.blocksBlue) {
               gapi.hangout.data.submitDelta({
-                blocks: serialize($rootScope.state.blocksBlue)
+                blocksBlue: serialize($rootScope.state.blocksBlue)
               });
             }
           }
@@ -262,7 +262,7 @@ define('app', [
           } else {
             if ($rootScope.state && $rootScope.state.blocksGreen) {
               gapi.hangout.data.submitDelta({
-                blocks: serialize($rootScope.state.blocksGreen)
+                blocksGreen: serialize($rootScope.state.blocksGreen)
               });
             }
           }
@@ -274,7 +274,7 @@ define('app', [
           } else {
             if ($rootScope.state && $rootScope.state.blocksRed) {
               gapi.hangout.data.submitDelta({
-                blocks: serialize($rootScope.state.blocksRed)
+                blocksRed: serialize($rootScope.state.blocksRed)
               });
             }
           }
@@ -286,20 +286,11 @@ define('app', [
           } else {
             if ($rootScope.state && $rootScope.state.blocksYellow) {
               gapi.hangout.data.submitDelta({
-                blocks: serialize($rootScope.state.blocksYellow)
+                blocksYellow: serialize($rootScope.state.blocksYellow)
               });
             }
           }
         }, true);
-  
-        // gapi.hangout.data.sendMessage('');
-        // gapi.hangout.data.onMessageReceived.add(function (message) {
-        //   message = parse(message);
-
-        //   if (message) {
-
-        //   }
-        // });
 
 
         //--------------------------------------------------------------------
@@ -399,6 +390,10 @@ define('app', [
             players;
 
           players = $rootScope.state.players;
+
+          if (!players) {
+            return null;
+          } 
 
           for (i = 0, l = players.length; i < l; i++) {
             player = players[i];
@@ -870,10 +865,6 @@ define('app', [
           !$rootScope.state.blocksBlue
         ) {
           $rootScope.state.blocksBlue = [];
-        } else {
-          setTimeout(function () {
-            $rootScope.syncBlocksWithState();
-          }, 100);
         }
 
         if (
@@ -892,6 +883,10 @@ define('app', [
           !$rootScope.state.blocksYellow
         ) {
           $rootScope.state.blocksYellow = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBlocksWithState();
+          }, 100);
         }
 
         var
@@ -1454,6 +1449,114 @@ define('app', [
           return false;
         }
 
+        gapi.hangout.data.onMessageReceived.add(function (message) {
+          var
+            block;
+
+          message = parse(message);
+
+          if (message.name === 'block.mousemove') {
+            // {
+            //   name: 'block.mousemove',
+            //   b: {
+            //     id: 'b-3',
+            //     p: [1, 2, 3]
+            //   }
+            // }
+
+            block = getBlockById(message.b.id);
+
+            // animation
+            dropTween = new TWEEN.Tween(block.position)
+              .to({
+                  x: message.b.p[0],
+                  y: message.b.p[1],
+                  z: message.b.p[2]
+                }, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                dropTween = null;
+              })
+              .start();
+          } else if (message.name === 'block.keydown.left') {
+            // {
+            //   name: 'block.keydown.left',
+            //   b: {
+            //     id: 'b-3',
+            //     r: 3.14
+            //   }
+            // }
+
+            block = getBlockById(message.b.id);
+
+            // animation
+            rotationTween = new TWEEN.Tween(block.rotation)
+              .to({y: message.b.r}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+              })
+              .start();
+          } else if (message.name === 'block.keydown.up') {
+            // {
+            //   name: 'block.keydown.up',
+            //   b: {
+            //     id: 'b-3',
+            //     r: 3.14
+            //   }
+            // }
+
+            block = getBlockById(message.b.id);
+
+            // animation
+            rotationTween = new TWEEN.Tween(block.rotation)
+              .to({z: message.b.r}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+              })
+              .start();
+          } else if (message.name === 'block.keydown.right') {
+            // {
+            //   name: 'block.keydown.right',
+            //   b: {
+            //     id: 'b-3',
+            //     r: 3.14
+            //   }
+            // }
+
+            block = getBlockById(message.b.id);
+
+            // animation
+            rotationTween = new TWEEN.Tween(block.rotation)
+              .to({y: message.b.r}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+              })
+              .start();
+          } else if (message.name === 'block.keydown.down') {
+            // {
+            //   name: 'block.keydown.down',
+            //   b: {
+            //     id: 'b-3',
+            //     r: 3.14
+            //   }
+            // }
+
+            block = getBlockById(message.b.id);
+
+            // animation
+            rotationTween = new TWEEN.Tween(block.rotation)
+              .to({z: message.b.r}, 200)
+              .easing(TWEEN.Easing.Exponential.Out)
+              .onComplete(function () {
+                rotationTween = null;
+              })
+              .start();
+          }
+        });
+
         //------------------------------------------------------------------
         // state functions
         //------------------------------------------------------------------
@@ -1500,7 +1603,7 @@ define('app', [
             }
           }
 
-          return false;
+          return null;
         };
 
         $rootScope.syncBoardWithState = function () {
@@ -1526,7 +1629,7 @@ define('app', [
           if (fromState) {
             boardSquare.userData.block = getBlockById(updateBoardSquare.b);
           } else {
-            boardSquare.b = updateBoardSquare.userData.block.id;
+            boardSquare.b = updateBoardSquare.userData.block.userData.id;
           }
         };
 
@@ -1538,31 +1641,40 @@ define('app', [
 
           blocks = $rootScope.state.blocksBlue;
 
-          for (i = 0, il = blocks.length; i < il; i++) {
-            block = blocks[i];
-            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          if (blocks) {
+            for (i = 0, il = blocks.length; i < il; i++) {
+              block = blocks[i];
+              $rootScope.syncBlock(getBlockById(block.id), block, true);
+            }
           }
+            
 
           blocks = $rootScope.state.blocksGreen;
 
-          for (i = 0, il = blocks.length; i < il; i++) {
-            block = blocks[i];
-            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          if (blocks) {
+            for (i = 0, il = blocks.length; i < il; i++) {
+              block = blocks[i];
+              $rootScope.syncBlock(getBlockById(block.id), block, true);
+            }
           }
 
           blocks = $rootScope.state.blocksRed;
 
 
-          for (i = 0, il = blocks.length; i < il; i++) {
-            block = blocks[i];
-            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          if (blocks) {
+            for (i = 0, il = blocks.length; i < il; i++) {
+              block = blocks[i];
+              $rootScope.syncBlock(getBlockById(block.id), block, true);
+            }
           }
 
           blocks = $rootScope.state.blocksYellow;
 
-          for (i = 0, il = blocks.length; i < il; i++) {
-            block = blocks[i];
-            $rootScope.syncBlock(getBlockById(block.id), block, true);
+          if (blocks) {
+            for (i = 0, il = blocks.length; i < il; i++) {
+              block = blocks[i];
+              $rootScope.syncBlock(getBlockById(block.id), block, true);
+            }
           }
         };
 
@@ -1607,6 +1719,9 @@ define('app', [
             // isRotated
             block.isRotated = blockUpdate.ir;
 
+            // isPlaced
+            block.userData.isPlaced = blockUpdate.ip;
+
           } else {
             block.l = blockUpdate.userData.layout;
 
@@ -1645,6 +1760,10 @@ define('app', [
             // isRotated
             block.ir = blockUpdate.isRotated;
 
+            // isPlaced
+            block.ip = blockUpdate.userData.isPlaced;
+
+            $rootScope.$apply();
           }
         };
 
@@ -1888,7 +2007,7 @@ define('app', [
             }
             if (!$rootScope.state.board[i][j]) {
               $rootScope.state.board[i][j] = {
-                b: 0
+                b: null
               };
             }
           }
@@ -1934,6 +2053,7 @@ define('app', [
             block.userData.squareCount = blockDefinition.squareCount;
             block.userData.colorAgent = colorAgent;
             block.userData.color = color;
+            block.userData.isPlaced = false;
 
             layoutWidth = block.userData.layout.length;
             layoutHeight = block.userData.layout[0].length;
@@ -2058,7 +2178,6 @@ define('app', [
 
             // update the state.blocks if we don't already have everything
             if (!$rootScope.getBlockById(block.userData.id)) {
-              console.log('didnt find it');
 
               if (color === 'blue') {
                 rootScopeBlocks = $rootScope.state.blocksBlue;
@@ -2113,11 +2232,10 @@ define('app', [
                   Math.round(block.rotation.y * 1000) / 1000,
                   Math.round(block.rotation.z * 1000) / 1000
                 ],
-                ir: block.isRotated
+                ir: block.isRotated,
+                ip: false
               });
 
-            } else {
-              console.log('found it');
             }
             
           }
@@ -2219,6 +2337,16 @@ define('app', [
                   
               }
 
+              // notify
+              gapi.hangout.data.sendMessage(serialize({
+                name: 'block.mousemove',
+                b: {
+                  id: selectedBlock.userData.id,
+                  p: [selectedBlock.position.x, selectedBlock.position.y, selectedBlock.position.z]
+                }
+              }));
+            
+
             }
 
           } else {
@@ -2235,7 +2363,13 @@ define('app', [
                 intersected = intersect.object;
               }
 
-              container.style.cursor = 'move';
+              // don't show move mouse thing if already placed
+              // 
+              if (intersected.userData.isPlaced) {
+                container.style.cursor = 'auto';
+              } else {
+                container.style.cursor = 'move';
+              }
 
             } else {
               intersected = null;
@@ -2265,14 +2399,19 @@ define('app', [
             // disable zoom, pan, etc. while dragging
             controls.enabled = false;
 
-            // TODO: Disable movement if 
-            // a) it isn't your blocks or 
-            // b) it isn't your turn to move the shared one or
-            // c) you already dropped your block
-
             selectedSquare = intersect.object;
             if (intersect.object.parent) {
               selectedBlock = intersect.object.parent;
+            }
+
+            // TODO: Disable movement if 
+            // a) it isn't your blocks or 
+            // b) it isn't your turn to move the shared one or
+
+            if (selectedBlock.userData.isPlaced) {
+              selectedBlock = null;
+              selectedSquare = null;
+              return;
             }
 
             if (raycaster.ray.intersectPlane(plane, intersection)) {
@@ -2289,7 +2428,8 @@ define('app', [
             layoutWidth,
             layoutHeight,
             originalPosition,
-            originalRotation;
+            originalRotation,
+            blockReference;
 
           e.preventDefault();
 
@@ -2299,14 +2439,28 @@ define('app', [
             selectedSquare &&
             selectedBlock
           ) {
-            if (canDrop(selectedBlock, xIndex, zIndex)) {
+            blockReference = selectedBlock;
+
+            if (
+              xIndex && 
+              zIndex && 
+              canDrop(selectedBlock, xIndex, zIndex)
+            ) {
 
               boardSquareMeshHovered = board[xIndex][zIndex];
 
+              // update the board
               for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
                 for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
                   if (selectedBlock.userData.layout[i][j]) {
                     board[xIndex + i][zIndex + j].userData.block = selectedBlock;
+
+                    // updat the state.board
+                    $rootScope.syncBoardSquare(
+                      $rootScope.state.board[xIndex + i][zIndex + j], 
+                      board[xIndex + i][zIndex + j], 
+                      false
+                    );
                   }
                 }
               }
@@ -2327,11 +2481,12 @@ define('app', [
                 .easing(TWEEN.Easing.Bounce.Out)
                 .onComplete(function () {
                   dropTween = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
-              blocks.splice(blocks.indexOf(selectedBlock), 1);
+              //blocks.splice(blocks.indexOf(selectedBlock), 1);
+              selectedBlock.userData.isPlaced = true;
 
               selectedSquare = null;
               selectedBlock = null;
@@ -2368,7 +2523,7 @@ define('app', [
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
                   dropTween = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
@@ -2378,13 +2533,9 @@ define('app', [
                     z: originalRotation.z
                   }, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
-                .onComplete(function () {
-                  dropTween = null;
-                })
                 .start();
             }
 
-            $rootScope.syncBlock($rootScope.getBlockById(selectedBlock.userData.id), selectedBlock, false);
           }
 
           if (intersected) {
@@ -2422,11 +2573,20 @@ define('app', [
                 .to({y: yRotation + Math.PI/2}, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
+
+              // notify
+              gapi.hangout.data.sendMessage(serialize({
+                name: 'block.keydown.left',
+                b: {
+                  id: blockReference.userData.id,
+                  r: (yRotation + Math.PI/2)
+                }
+              }));
 
             // up or w
             } else if (e.keyCode === 38 || e.keyCode === 87) {
@@ -2444,13 +2604,22 @@ define('app', [
                 .to({z: zRotation + Math.PI}, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
-            // right
+              // notify
+              gapi.hangout.data.sendMessage(serialize({
+                name: 'block.keydown.up',
+                b: {
+                  id: blockReference.userData.id,
+                  r: (zRotation + Math.PI)
+                }
+              }));
+
+            // right or d
             } else if (e.keyCode === 39 || e.keyCode === 83) {
 
               blockReference.isRotated = !blockReference.isRotated;
@@ -2463,13 +2632,22 @@ define('app', [
                 .to({y: yRotation - Math.PI/2}, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
 
-            // down
+              // notify
+              gapi.hangout.data.sendMessage(serialize({
+                name: 'block.keydown.right',
+                b: {
+                  id: blockReference.userData.id,
+                  r: (yRotation - Math.PI/2)
+                }
+              }));
+
+            // down or s
             } else if (e.keyCode === 40 || e.keyCode === 68) {
 
               if (blockReference.isRotated) {
@@ -2485,11 +2663,20 @@ define('app', [
                 .to({z: zRotation - Math.PI}, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
                 .onComplete(function () {
+                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                   rotationTween = null;
                   blockReference = null;
-                  $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
                 })
                 .start();
+
+              // notify
+              gapi.hangout.data.sendMessage(serialize({
+                name: 'block.keydown.down',
+                b: {
+                  id: blockReference.userData.id,
+                  r: (zRotation - Math.PI)
+                }
+              }));
             }
             
           }

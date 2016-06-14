@@ -160,6 +160,7 @@
         <button id="view-1">View 1</button>
         <button id="view-2">View 2</button>
         <button id="view-3">View 3</button>
+        <h1 id="current-turn">Current Turn: {{state.game.currentColor}} Current Player: {{ findPlayerById(state.colors[state.game.currentColor].id).name }}</h1>
       </div>
 
     </section>
@@ -177,6 +178,24 @@
         <div class="modal-footer">
           <button ng-click="leave(); $root.showLeaveModal = false;">Yes</button>
           <button ng-click="$root.showLeaveModal = false;">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="modal-confirm-drop" class="modal" ng-show="showConfirmDropModal">
+        
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" ng-click="$root.showConfirmDropModal = false;">x</span>
+          <div class="clear"></div>
+        </div>
+        <div class="modal-body">
+          <p>End turn?</p>
+        </div>
+        <div class="modal-footer">
+          <button ng-click="confirmDrop(); $root.showConfirmDropModal = false;">Yes</button>
+          <button ng-click="cancelDrop(); $root.showConfirmDropModal = false;">Cancel</button>
         </div>
       </div>
 

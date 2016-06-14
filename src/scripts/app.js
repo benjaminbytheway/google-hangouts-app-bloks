@@ -164,9 +164,14 @@ define('app', [
                 blocksYellow: false
               };
             }
-          }, 0);
+          }, 0); 
 
-          console.log('************ onStateChanged ***********');
+          // when resetting state to {}
+          if (serialize(state) === '{}') {
+            $rootScope.state = {};
+          }
+
+          // console.log('************ onStateChanged ***********');
 
           for (key in state) {
             value = state[key];
@@ -186,9 +191,24 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
+
+                if (
+                  $rootScope.state.game.currentColor &&
+                  $rootScope.state.colors[$rootScope.state.game.currentColor] &&
+                  $rootScope.state.colors[$rootScope.state.game.currentColor].id
+                ) {
+                  if ($rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id) {
+                    if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
+                      gapi.hangout.layout.displayNotice('It is your turn!');
+                    } else {
+                      gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
+                      $rootScope.nextColor();
+                    }
+                  }
+                }
               }
             } else if (key === 'players' && metadata) {
               if (
@@ -197,7 +217,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -208,7 +228,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -219,7 +239,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -230,7 +250,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -244,7 +264,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -258,7 +278,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -272,7 +292,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -286,7 +306,7 @@ define('app', [
               ) {
                 // nothing
               } else {
-                console.log(key + ' changed to ' + JSON.stringify(value));
+                // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -338,13 +358,13 @@ define('app', [
         // }, true); // TODO: Figure out a way not to do object equality
 
         $rootScope.$watch('state.game', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.game----------');
+          // console.log('----------$watch--state.game----------');
 
           if (supressSubmitDelta.game) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.game = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.game) {
               gapi.hangout.data.submitDelta({
                 game: serialize($rootScope.state.game)
@@ -354,13 +374,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.players', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.players----------');
+          // console.log('----------$watch--state.players----------');
 
           if (supressSubmitDelta.players) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.players = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.players) {
               gapi.hangout.data.submitDelta({
                 players: serialize($rootScope.state.players)
@@ -370,13 +390,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.host', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.host----------');
+          // console.log('----------$watch--state.host----------');
           
           if (supressSubmitDelta.host) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.host = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.host) {
               gapi.hangout.data.submitDelta({
                 host: serialize($rootScope.state.host)
@@ -410,13 +430,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksBlue', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.blocksBlue----------');
+          // console.log('----------$watch--state.blocksBlue----------');
 
           if (supressSubmitDelta.blocksBlue) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.blocksBlue = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksBlue) {
               gapi.hangout.data.submitDelta({
                 blocksBlue: serialize($rootScope.state.blocksBlue)
@@ -426,13 +446,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksGreen', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.blocksGreen----------');
+          // console.log('----------$watch--state.blocksGreen----------');
 
           if (supressSubmitDelta.blocksGreen) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.blocksGreen = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksGreen) {
               gapi.hangout.data.submitDelta({
                 blocksGreen: serialize($rootScope.state.blocksGreen)
@@ -442,13 +462,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksRed', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.blocksRed----------');
+          // console.log('----------$watch--state.blocksRed----------');
 
           if (supressSubmitDelta.blocksRed) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.blocksRed = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksRed) {
               gapi.hangout.data.submitDelta({
                 blocksRed: serialize($rootScope.state.blocksRed)
@@ -458,13 +478,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksYellow', function (newValue, oldValue, scope) {
-          console.log('----------$watch--state.blocksYellow----------');
+          // console.log('----------$watch--state.blocksYellow----------');
 
           if (supressSubmitDelta.blocksYellow) {
-            console.log('supressSubmitDelta');
+            // console.log('supressSubmitDelta');
             supressSubmitDelta.blocksYellow = false;
           } else {
-            console.log('submitDelta');
+            // console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksYellow) {
               gapi.hangout.data.submitDelta({
                 blocksYellow: serialize($rootScope.state.blocksYellow)
@@ -857,7 +877,7 @@ define('app', [
             // if it is a 3 person game
             players.length === 3 &&
             // and 3 colors have been assigned
-            Object.keys(colors).length === 3
+            $rootScope.displayChoosenColors().length === 3
           ) {
 
             // get the last remaining color that hasn't 
@@ -876,7 +896,7 @@ define('app', [
             for (i = 0, l = players.length; i < l; i++) {
               player = players[i];
 
-              // loop until we get an empty index
+              // loop until we get an empty index from 1 to 3
               do {
                 random = Math.floor(Math.random() * 3);
               } while (order[random]);
@@ -1025,7 +1045,7 @@ define('app', [
 
         $rootScope.start = function () {
           // NOTE: This will only be run by the host
-          
+          $rootScope.state.game.currentColor = Object.keys($rootScope.state.colors)[Math.floor(Math.random() * 4)];
           $rootScope.state.game.currentStage = STAGES.PLAY;
         };
 
@@ -2605,7 +2625,7 @@ define('app', [
             layoutWidth,
             layoutHeight,
             originalPosition,
-            originalRotation,
+            // originalRotation,
             blockReference;
 
           e.preventDefault();
@@ -2659,6 +2679,11 @@ define('app', [
                 .onComplete(function () {
                   dropTween = null;
                   $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
+
+                  // ask the user if they are okay with the drop
+                  $rootScope.droppedBlock = blockReference;
+                  $rootScope.showConfirmDropModal = true;
+                  $rootScope.$apply();
                 })
                 .start();
 
@@ -2684,12 +2709,12 @@ define('app', [
               ) {
                 selectedBlock.startPosition.x = selectedBlock.position.x;
                 selectedBlock.startPosition.z = selectedBlock.position.z;
-                selectedBlock.startRotation = selectedBlock.rotation;
+                // selectedBlock.startRotation = selectedBlock.rotation;
               }
 
               // move it back to original position and rotation
               originalPosition = selectedBlock.startPosition;
-              originalRotation = selectedBlock.startRotation;
+              // originalRotation = selectedBlock.startRotation;
               
               dropTween = new TWEEN.Tween(selectedBlock.position)
                 .to({
@@ -2701,16 +2726,19 @@ define('app', [
                 .onComplete(function () {
                   dropTween = null;
                   $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
+                  
                 })
                 .start();
 
-              new TWEEN.Tween(selectedBlock.rotation)
-                .to({
-                    y: originalRotation.y,
-                    z: originalRotation.z
-                  }, 200)
-                .easing(TWEEN.Easing.Exponential.Out)
-                .start();
+              // TODO: originalLayout? Are we messing up the layout if we rotate while dragging it out and then 
+              // it snaps back and rotates back, but doesn't change layout?
+              // new TWEEN.Tween(selectedBlock.rotation)
+              //   .to({
+              //       y: originalRotation.y,
+              //       z: originalRotation.z
+              //     }, 200)
+              //   .easing(TWEEN.Easing.Exponential.Out)
+              //   .start();
 
               scene.remove(hintBlock);
             }
@@ -2868,19 +2896,102 @@ define('app', [
         renderer.domElement.addEventListener('mouseup', mouseup, false);
         document.addEventListener('keydown', keydown, false);
 
+        $rootScope.showConfirmDropModal = false;
+        $rootScope.droppedBlock = null;
+
+        $rootScope.confirmDrop = function () {
+          $rootScope.nextColor();
+        };
+
+        $rootScope.cancelDrop = function () {
+          var
+            originalPosition,
+            blockReference;
+
+          blockReference = $rootScope.droppedBlock;
+
+          // move it back to original position and rotation
+          originalPosition = blockReference.startPosition;
+          
+          dropTween = new TWEEN.Tween(blockReference.position)
+            .to({
+                x: originalPosition.x,
+                y: originalPosition.y,
+                z: originalPosition.z
+              }, 200)
+            .easing(TWEEN.Easing.Exponential.Out)
+            .onComplete(function () {
+              dropTween = null;
+              $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
+              $rootScope.droppedBlock = null;
+            })
+            .start();
+
+        };
+
+        $rootScope.nextColor = function () {
+          var 
+            currentColor,
+            colorAgent;
+
+          currentColor = $rootScope.state.game.currentColor;
+
+          // change whose turn it is
+          if (currentColor === 'blue') {
+            currentColor = 'green';
+            $rootScope.state.game.currentColor = currentColor;
+            colorAgent = $rootScope.state.colors[currentColor];
+          } else if (currentColor === 'green') {
+            currentColor = 'red';
+            $rootScope.state.game.currentColor = currentColor;
+            colorAgent = $rootScope.state.colors[currentColor];
+          } else if (currentColor === 'red') {
+            currentColor = 'yellow';
+            $rootScope.state.game.currentColor = currentColor;
+            colorAgent = $rootScope.state.colors[currentColor];
+          } else if (currentColor === 'yellow') {
+            currentColor = 'blue';
+            $rootScope.state.game.currentColor = currentColor;
+            colorAgent = $rootScope.state.colors[currentColor];
+          }
+
+          // if the type is 
+          if (colorAgent.type === 2) {
+
+            // if we are at the end, start at the beginning
+            if (colorAgent.current === colorAgent.length - 1) {
+              colorAgent.current = 0;
+            // otherwise, get the next person in line
+            } else {
+              colorAgent.order++;
+            }
+
+            colorAgent.id = colorAgent.order[colorAgent.current];
+          }
+        };
+
+
+
+        $rootScope.canTakeTurn = function () {
+          // TODO: determine if I can take a turn
+          return true;
+        };
+
         //------------------------------------------------------------------
         // Animate and Render
         //------------------------------------------------------------------
 
         function render() {
           controls.update();
-          renderer.render(scene,camera);
+          renderer.render(scene, camera);
         }
 
         function animate(time) {
           requestAnimationFrame(animate);
 
-          // don't start doing anything until we have initialized
+          TWEEN.update(time);
+
+          // don't start rendering anything until we have initialized
           if (
             !$rootScope ||
             !$rootScope.state || 
@@ -2891,14 +3002,13 @@ define('app', [
             return;
           }
 
-          TWEEN.update(time);
           render();
         }
 
         container.appendChild(renderer.domElement);
 
         animate();
-        
+
       }]);
     
 

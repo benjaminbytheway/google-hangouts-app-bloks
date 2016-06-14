@@ -13,6 +13,8 @@ require([
           }
         });
       });
+
+    document.body.style.opacity = 0.0;
     
     hangoutOnApiReadyPromise
       //----------------------------------------------------------------------
@@ -24,7 +26,12 @@ require([
         angular.bootstrap(document, ['app']);
 
         // fade it into view
-        $('body').fadeIn();
+        new TWEEN.Tween(document.body.style)
+          .to({
+              opacity: 1.0
+            }, 1000)
+          .easing(TWEEN.Easing.Exponential.Out)
+          .start();
       });
 
   });

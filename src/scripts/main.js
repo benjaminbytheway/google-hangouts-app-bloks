@@ -23,8 +23,8 @@ require([
         // start the app
         angular.bootstrap(document, ['app']);
 
-        // TODO: loading screen fade out, app fade in...
-
+        // fade it into view
+        $('body').fadeIn();
       });
 
   });

@@ -72,13 +72,26 @@ define('app', [
       // initialize
       .run(['$rootScope', function ($rootScope) {
         var
-          supressSubmitDelta = false;
+          supressSubmitDelta = {
+            game: false,
+            players: false,
+            host: false,
+            colors: false,
+            board: false,
+            blocksBlue: false,
+            blocksGreen: false,
+            blocksRed: false,
+            blocksYellow: false
+          };
 
         // Get my participant
         $rootScope.me = gapi.hangout.getLocalParticipant();
 
         // get initial state, or initialize
         $rootScope.state = parseState(gapi.hangout.data.getState()) || {};
+
+        // metadata
+        $rootScope.metadata = gapi.hangout.data.getStateMetadata() || {};
 
         //--------------------------------------------------------------------
         // Initialize the game (if not already initialized)
@@ -109,9 +122,9 @@ define('app', [
           // e.state
 
           var
-            // key,
-            // value,
-            // metadata,
+            key,
+            value,
+            metadata,
             state;
           
           state = parseState(e.state);
@@ -124,33 +137,173 @@ define('app', [
           // }
 
           // make sure we don't call the submitDelta
-          supressSubmitDelta = true;
+          supressSubmitDelta = {
+            game: true,
+            players: true,
+            host: true,
+            colors: true,
+            board: true,
+            blocksBlue: true,
+            blocksGreen: true,
+            blocksRed: true,
+            blocksYellow: true
+          };
+
           // turn this off as soon as you can in case the watcher doesn't trigger
           setTimeout(function () {
             if (supressSubmitDelta) {
-              supressSubmitDelta = false;
+              supressSubmitDelta = {
+                game: false,
+                players: false,
+                host: false,
+                colors: false,
+                board: false,
+                blocksBlue: false,
+                blocksGreen: false,
+                blocksRed: false,
+                blocksYellow: false
+              };
             }
           }, 0);
 
-          $rootScope.state = state;
+          console.log('************ onStateChanged ***********');
+
+          for (key in state) {
+            value = state[key];
+            metadata = e.metadata[key];
+
+            // if I was the one that wrote this, then ignore the update
+            // and only set the metadata
+            if (metadata.lastWriter === $rootScope.me.id) {
+              $rootScope.metadata[key] = metadata;
+              continue;
+            }
+
+            if (key === 'game' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+              }
+            } else if (key === 'players' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+              }
+            } else if (key === 'host' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+              }
+            } else if (key === 'colors' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+              }
+            } else if (key === 'board' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+
+                // special update for the UI
+                $rootScope.syncBoardWithState();
+              }
+            } else if (key === 'blocksBlue' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+
+                // special update for the UI
+                $rootScope.syncBlocksWithState($rootScope.state[key]);
+              }
+            } else if (key === 'blocksGreen' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+
+                // special update for the UI
+                $rootScope.syncBlocksWithState($rootScope.state[key]);
+              }
+            } else if (key === 'blocksRed' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+
+                // special update for the UI
+                $rootScope.syncBlocksWithState($rootScope.state[key]);
+              }
+            } else if (key === 'blocksYellow' && metadata) {
+              if (
+                $rootScope.metadata[key] &&
+                $rootScope.metadata[key].timestamp === metadata.timestamp
+              ) {
+                // nothing
+              } else {
+                console.log(key + ' changed to ' + JSON.stringify(value));
+                $rootScope.metadata[key] = metadata;
+                $rootScope.state[key] = value;
+
+                // special update for the UI
+                $rootScope.syncBlocksWithState($rootScope.state[key]);
+              }
+            }
+          }
+
+          //$rootScope.state = state;
     
           // special update for three.js
-          if (state.board) {
-            $rootScope.syncBoardWithState();
-          }
-          if (state.blocksBlue || state.blocksGreen || state.blocksRed || state.blocksYellow) {
-            $rootScope.syncBlocksWithState();
-          }
-
-          // for (key in state) {
-          //   value = state[key];
-          //   metadata = e.metadata[key];
-
-          //   if (key === 'board') {
-          //     $rootScope.syncBoardWithState();
-          //   } else if (key === 'blocks') {
-          //     $rootScope.syncBlocksWithState();
-          //   }
+          // if (state.board) {
+          //   $rootScope.syncBoardWithState();
+          // }
+          // if (state.blocksBlue || state.blocksGreen || state.blocksRed || state.blocksYellow) {
+          //   $rootScope.syncBlocksWithState();
           // }
 
           // TODO: DEBUGGING (REMOVE)
@@ -185,9 +338,13 @@ define('app', [
         // }, true); // TODO: Figure out a way not to do object equality
 
         $rootScope.$watch('state.game', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.game----------');
+
+          if (supressSubmitDelta.game) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.game = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.game) {
               gapi.hangout.data.submitDelta({
                 game: serialize($rootScope.state.game)
@@ -197,9 +354,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.players', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.players----------');
+
+          if (supressSubmitDelta.players) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.players = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.players) {
               gapi.hangout.data.submitDelta({
                 players: serialize($rootScope.state.players)
@@ -209,9 +370,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.host', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.host----------');
+          
+          if (supressSubmitDelta.host) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.host = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.host) {
               gapi.hangout.data.submitDelta({
                 host: serialize($rootScope.state.host)
@@ -221,8 +386,8 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.colors', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          if (supressSubmitDelta.colors) {
+            supressSubmitDelta.colors = false;
           } else {
             if ($rootScope.state && $rootScope.state.colors) {
               gapi.hangout.data.submitDelta({
@@ -233,8 +398,8 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.board', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          if (supressSubmitDelta.board) {
+            supressSubmitDelta.board = false;
           } else {
             if ($rootScope.state && $rootScope.state.board) {
               gapi.hangout.data.submitDelta({
@@ -245,9 +410,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksBlue', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.blocksBlue----------');
+
+          if (supressSubmitDelta.blocksBlue) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.blocksBlue = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksBlue) {
               gapi.hangout.data.submitDelta({
                 blocksBlue: serialize($rootScope.state.blocksBlue)
@@ -257,9 +426,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksGreen', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.blocksGreen----------');
+
+          if (supressSubmitDelta.blocksGreen) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.blocksGreen = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksGreen) {
               gapi.hangout.data.submitDelta({
                 blocksGreen: serialize($rootScope.state.blocksGreen)
@@ -269,9 +442,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksRed', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.blocksRed----------');
+
+          if (supressSubmitDelta.blocksRed) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.blocksRed = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksRed) {
               gapi.hangout.data.submitDelta({
                 blocksRed: serialize($rootScope.state.blocksRed)
@@ -281,9 +458,13 @@ define('app', [
         }, true);
 
         $rootScope.$watch('state.blocksYellow', function (newValue, oldValue, scope) {
-          if (supressSubmitDelta) {
-            supressSubmitDelta = false;
+          console.log('----------$watch--state.blocksYellow----------');
+
+          if (supressSubmitDelta.blocksYellow) {
+            console.log('supressSubmitDelta');
+            supressSubmitDelta.blocksYellow = false;
           } else {
+            console.log('submitDelta');
             if ($rootScope.state && $rootScope.state.blocksYellow) {
               gapi.hangout.data.submitDelta({
                 blocksYellow: serialize($rootScope.state.blocksYellow)
@@ -865,18 +1046,30 @@ define('app', [
           !$rootScope.state.blocksBlue
         ) {
           $rootScope.state.blocksBlue = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBlocksWithState($rootScope.state.blocksBlue);
+          }, 100);
         }
 
         if (
           !$rootScope.state.blocksGreen
         ) {
           $rootScope.state.blocksGreen = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBlocksWithState($rootScope.state.blocksGreen);
+          }, 100);
         }
 
         if (
           !$rootScope.state.blocksRed
         ) {
           $rootScope.state.blocksRed = [];
+        } else {
+          setTimeout(function () {
+            $rootScope.syncBlocksWithState($rootScope.state.blocksRed);
+          }, 100);
         }
 
         if (
@@ -885,7 +1078,7 @@ define('app', [
           $rootScope.state.blocksYellow = [];
         } else {
           setTimeout(function () {
-            $rootScope.syncBlocksWithState();
+            $rootScope.syncBlocksWithState($rootScope.state.blocksYellow);
           }, 100);
         }
 
@@ -1388,7 +1581,7 @@ define('app', [
                 board[xIndex + i][zIndex + j] &&
                 layout[i] &&
                 layout[i][j] &&
-                // touching on one of the corners?
+                // touching on one of the faces
                 (
                   // left
                   (
@@ -1449,11 +1642,17 @@ define('app', [
           return false;
         }
 
-        gapi.hangout.data.onMessageReceived.add(function (message) {
+        gapi.hangout.data.onMessageReceived.add(function (e) {
           var
-            block;
+            block,
+            message;
 
-          message = parse(message);
+          if (e.senderId === $rootScope.me.id) {
+            console.log('from me');
+            return;
+          }
+
+          message = parse(e.message);
 
           if (message.name === 'block.mousemove') {
             // {
@@ -1557,6 +1756,12 @@ define('app', [
           }
         });
 
+        function sendMessage(message) {
+          try {
+            gapi.hangout.data.sendMessage(serialize(message));
+          } catch (e) {}
+        }
+
         //------------------------------------------------------------------
         // state functions
         //------------------------------------------------------------------
@@ -1633,42 +1838,10 @@ define('app', [
           }
         };
 
-        $rootScope.syncBlocksWithState = function () {
+        $rootScope.syncBlocksWithState = function (blocks) {
           var
             i, il,
-            block,
-            blocks;
-
-          blocks = $rootScope.state.blocksBlue;
-
-          if (blocks) {
-            for (i = 0, il = blocks.length; i < il; i++) {
-              block = blocks[i];
-              $rootScope.syncBlock(getBlockById(block.id), block, true);
-            }
-          }
-            
-
-          blocks = $rootScope.state.blocksGreen;
-
-          if (blocks) {
-            for (i = 0, il = blocks.length; i < il; i++) {
-              block = blocks[i];
-              $rootScope.syncBlock(getBlockById(block.id), block, true);
-            }
-          }
-
-          blocks = $rootScope.state.blocksRed;
-
-
-          if (blocks) {
-            for (i = 0, il = blocks.length; i < il; i++) {
-              block = blocks[i];
-              $rootScope.syncBlock(getBlockById(block.id), block, true);
-            }
-          }
-
-          blocks = $rootScope.state.blocksYellow;
+            block;
 
           if (blocks) {
             for (i = 0, il = blocks.length; i < il; i++) {
@@ -1846,9 +2019,7 @@ define('app', [
           camera.lookAt(new THREE.Vector3(0,0,0));
         });
 
-        // resize if the window gets resized
-        w.addEventListener('resize', function () {
-
+        function resize() {
           WIDTH = container.offsetWidth;
           HEIGHT = container.offsetHeight;
           
@@ -1858,8 +2029,10 @@ define('app', [
 
           // update the renderer
           renderer.setSize(WIDTH, HEIGHT);
-          
-        }, false);
+        }
+
+        // resize if the window gets resized
+        w.addEventListener('resize', resize, false);
 
         //------------------------------------------------------------------
         // controls
@@ -2251,6 +2424,10 @@ define('app', [
         offset = new THREE.Vector3();
         intersection = new THREE.Vector3();
 
+        function mouseenter(e) {
+          w.focus();
+        }
+
         function mousemove(e) {
           var
             intersect,
@@ -2338,13 +2515,13 @@ define('app', [
               }
 
               // notify
-              gapi.hangout.data.sendMessage(serialize({
+              sendMessage({
                 name: 'block.mousemove',
                 b: {
                   id: selectedBlock.userData.id,
                   p: [selectedBlock.position.x, selectedBlock.position.y, selectedBlock.position.z]
                 }
-              }));
+              });
             
 
             }
@@ -2441,9 +2618,9 @@ define('app', [
           ) {
             blockReference = selectedBlock;
 
-            if (
-              xIndex && 
-              zIndex && 
+            if (  
+              xIndex !== undefined && xIndex !== null &&
+              zIndex !== undefined && zIndex !== null &&
               canDrop(selectedBlock, xIndex, zIndex)
             ) {
 
@@ -2534,6 +2711,8 @@ define('app', [
                   }, 200)
                 .easing(TWEEN.Easing.Exponential.Out)
                 .start();
+
+              scene.remove(hintBlock);
             }
 
           }
@@ -2580,13 +2759,13 @@ define('app', [
                 .start();
 
               // notify
-              gapi.hangout.data.sendMessage(serialize({
+              sendMessage({
                 name: 'block.keydown.left',
                 b: {
                   id: blockReference.userData.id,
                   r: (yRotation + Math.PI/2)
                 }
-              }));
+              });
 
             // up or w
             } else if (e.keyCode === 38 || e.keyCode === 87) {
@@ -2611,13 +2790,13 @@ define('app', [
                 .start();
 
               // notify
-              gapi.hangout.data.sendMessage(serialize({
+              sendMessage({
                 name: 'block.keydown.up',
                 b: {
                   id: blockReference.userData.id,
                   r: (zRotation + Math.PI)
                 }
-              }));
+              });
 
             // right or d
             } else if (e.keyCode === 39 || e.keyCode === 83) {
@@ -2639,13 +2818,13 @@ define('app', [
                 .start();
 
               // notify
-              gapi.hangout.data.sendMessage(serialize({
+              sendMessage({
                 name: 'block.keydown.right',
                 b: {
                   id: blockReference.userData.id,
                   r: (yRotation - Math.PI/2)
                 }
-              }));
+              });
 
             // down or s
             } else if (e.keyCode === 40 || e.keyCode === 68) {
@@ -2670,19 +2849,20 @@ define('app', [
                 .start();
 
               // notify
-              gapi.hangout.data.sendMessage(serialize({
+              sendMessage({
                 name: 'block.keydown.down',
                 b: {
                   id: blockReference.userData.id,
                   r: (zRotation - Math.PI)
                 }
-              }));
+              });
             }
             
           }
 
         }
 
+        renderer.domElement.addEventListener('mouseenter', mouseenter, false);
         renderer.domElement.addEventListener('mousemove', mousemove, false);
         renderer.domElement.addEventListener('mousedown', mousedown, false);
         renderer.domElement.addEventListener('mouseup', mouseup, false);
@@ -2718,7 +2898,7 @@ define('app', [
         container.appendChild(renderer.domElement);
 
         animate();
-
+        
       }]);
     
 

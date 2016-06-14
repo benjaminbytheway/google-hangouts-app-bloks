@@ -100,6 +100,7 @@ gulp.task('js', [
             smarttabs: true,
             globals: {
               Promise: true,
+              $: true,
               angular: true,
               require: true,
               define: true,

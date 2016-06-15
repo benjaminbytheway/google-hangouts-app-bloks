@@ -154,13 +154,14 @@
       </section>
     </section>
 
-    <section id="stage-3" ng-show="state.game.currentStage === 3">
+    <section id="stage-3" ng-show="state.game.currentStage === 3 || state.game.currentStage === 4">
       
       <div id="canvas-container">
         <button id="view-1">View 1</button>
         <button id="view-2">View 2</button>
         <button id="view-3">View 3</button>
         <h1 id="current-turn">Current Turn: {{state.game.currentColor}} Current Player: {{ findPlayerById(state.colors[state.game.currentColor].id).name }}</h1>
+        <h1 id="win-message" ng-show="state.game.currentStage === 4">GREAT JOB!!!</h1>
       </div>
 
     </section>

@@ -58,8 +58,7 @@ define('app', [
         LOBBY: 1, // waiting for game to start
         CHOOSE_COLOR: 2,
         PLAY: 3,
-        DETERMINE_WINNER: 4,
-        CONGRATULATIONS: 5
+        CONGRATULATIONS: 4
       };
 
     app = angular.module('app', [
@@ -194,21 +193,6 @@ define('app', [
                 // console.log(key + ' changed to ' + JSON.stringify(value));
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
-
-                if (
-                  $rootScope.state.game.currentColor &&
-                  $rootScope.state.colors[$rootScope.state.game.currentColor] &&
-                  $rootScope.state.colors[$rootScope.state.game.currentColor].id
-                ) {
-                  if ($rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id) {
-                    if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
-                      gapi.hangout.layout.displayNotice('It is your turn!');
-                    } else {
-                      gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
-                      $rootScope.nextColor();
-                    }
-                  }
-                }
               }
             } else if (key === 'players' && metadata) {
               if (
@@ -356,6 +340,37 @@ define('app', [
         //   window.state = $rootScope.state;
 
         // }, true); // TODO: Figure out a way not to do object equality
+
+        $rootScope.$watch('state.game.currentColor', function (newValue, oldValue, scope) {
+
+          if (
+            $rootScope.state &&
+            $rootScope.state.game &&
+            $rootScope.state.game.currentColor &&
+            $rootScope.state.colors[$rootScope.state.game.currentColor] &&
+            $rootScope.state.colors[$rootScope.state.game.currentColor].id
+          ) {
+
+            // if it is me, check to see if I can still take a turn
+            if ($rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id) {
+              if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
+                gapi.hangout.layout.displayNotice('It is your turn!');
+              } else {
+                gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
+                $rootScope.nextColor();
+              }
+            }
+
+            // if it is the host only, check to see if the game is done
+            if (
+              $rootScope.me.person.id === $rootScope.state.host.id &&
+              !$rootScope.canAnyoneTakeTurn()
+            ) {
+              $rootScope.state.game.currentStage = STAGES.CONGRATULATIONS;
+            }
+          }
+
+        });
 
         $rootScope.$watch('state.game', function (newValue, oldValue, scope) {
           // console.log('----------$watch--state.game----------');
@@ -1153,6 +1168,7 @@ define('app', [
           xIndex, zIndex,
           color,
           colorAgent,
+          sendMessageTimeout,
           blockDefinitions = [ // TODO: Replace with $rootScope.blockDefinitions possibly?
             //---------------------
             // 5 pieces
@@ -1345,8 +1361,10 @@ define('app', [
             }
           ],
           // dimensions
-          WIDTH = container.offsetWidth,
-          HEIGHT = container.offsetHeight,
+          // WIDTH = container.offsetWidth,
+          WIDTH = $(container).outerWidth(true),
+          // HEIGHT = container.offsetHeight,
+          HEIGHT = $(container).outerHeight(true),
           // TABLE_WIDTH = 10,
           // TABLE_HEIGHT = 10,
           SQUARE_WIDTH = 0.2,
@@ -1566,29 +1584,29 @@ define('app', [
                     board[xIndex + i - 1] &&
                     board[xIndex + i - 1][zIndex + j - 1] &&
                     board[xIndex + i - 1][zIndex + j - 1].userData.block &&
-                    board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i - 1][zIndex + j - 1].userData.block.userData.color === 
+                      block.userData.color
                   // top right
                   ) || (
                     board[xIndex + i + 1] &&
                     board[xIndex + i + 1][zIndex + j - 1] &&
                     board[xIndex + i + 1][zIndex + j - 1].userData.block &&
-                    board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i + 1][zIndex + j - 1].userData.block.userData.color === 
+                      block.userData.color
                   // bottom left
                   ) || (
                     board[xIndex + i - 1] &&
                     board[xIndex + i - 1][zIndex + j + 1] &&
                     board[xIndex + i - 1][zIndex + j + 1].userData.block &&
-                    board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i - 1][zIndex + j + 1].userData.block.userData.color === 
+                      block.userData.color
                   // bottom right
                   ) || (
                     board[xIndex + i + 1] &&
                     board[xIndex + i + 1][zIndex + j + 1] &&
                     board[xIndex + i + 1][zIndex + j + 1].userData.block &&
-                    board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i + 1][zIndex + j + 1].userData.block.userData.color === 
+                      block.userData.color
                   )
                 )
               ) {
@@ -1608,29 +1626,29 @@ define('app', [
                     board[xIndex + i - 1] &&
                     board[xIndex + i - 1][zIndex + j] &&
                     board[xIndex + i - 1][zIndex + j].userData.block &&
-                    board[xIndex + i - 1][zIndex + j].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i - 1][zIndex + j].userData.block.userData.color === 
+                      block.userData.color
                   // right
                   ) || (
                     board[xIndex + i + 1] &&
                     board[xIndex + i + 1][zIndex + j] &&
                     board[xIndex + i + 1][zIndex + j].userData.block &&
-                    board[xIndex + i + 1][zIndex + j].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i + 1][zIndex + j].userData.block.userData.color === 
+                      block.userData.color
                   // top
                   ) || (
                     board[xIndex + i] &&
                     board[xIndex + i][zIndex + j - 1] &&
                     board[xIndex + i][zIndex + j - 1].userData.block &&
-                    board[xIndex + i][zIndex + j - 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i][zIndex + j - 1].userData.block.userData.color === 
+                      block.userData.color
                   // bottom
                   ) || (
                     board[xIndex + i] &&
                     board[xIndex + i][zIndex + j + 1] &&
                     board[xIndex + i][zIndex + j + 1].userData.block &&
-                    board[xIndex + i][zIndex + j + 1].userData.block.userData.colorAgent === 
-                      block.userData.colorAgent
+                    board[xIndex + i][zIndex + j + 1].userData.block.userData.color === 
+                      block.userData.color
                   )
                 )
               ) {
@@ -1777,8 +1795,20 @@ define('app', [
         });
 
         function sendMessage(message) {
+          if (
+            message.name === 'block.mousemove' &&
+            sendMessageTimeout
+          ) {
+            return;
+          }
+
           try {
             gapi.hangout.data.sendMessage(serialize(message));
+
+            // don't send any more updates until 500 milliseconds...
+            sendMessageTimeout = setTimeout(function () {
+              sendMessageTimeout = null;
+            }, 500);
           } catch (e) {}
         }
 
@@ -2040,8 +2070,10 @@ define('app', [
         });
 
         function resize() {
-          WIDTH = container.offsetWidth;
-          HEIGHT = container.offsetHeight;
+          // WIDTH = container.offsetWidth;
+          WIDTH = $(container).outerWidth(true);
+          // HEIGHT = container.offsetHeight;
+          HEIGHT = $(container).outerHeight(true);
           
           // update the camera
           camera.aspect = WIDTH / HEIGHT;
@@ -2274,8 +2306,8 @@ define('app', [
                   squareMaterial = new THREE.MeshPhongMaterial({
                     color: block.userData.colorAgent.hex,
                     transparent: true,
-                    opacity: 0.75,
-                    shininess: 75,
+                    opacity: 0.7,
+                    shininess: 85,
                     side: THREE.DoubleSide
                   });
                   squareMesh = new THREE.Mesh(squareGeometryTemplate, squareMaterial);
@@ -2467,6 +2499,10 @@ define('app', [
 
           raycaster.setFromCamera(mouse, camera);
 
+          // TODO: Remove hintBlock from this section and instead put it in another function to call in animate
+          // Reason is so that we can update the hint when someone else is moving their block...
+          scene.remove(hintBlock);
+
           if (selectedSquare && selectedBlock) {
             // TODO: put boundaries on how far you can move the block so that
             // a) It doesn't get lost somewhere and 
@@ -2482,43 +2518,21 @@ define('app', [
               xIndex = Math.floor((intersection.x + ((BOARD_WIDTH_IN_SQUARES * SQUARE_WIDTH) / 2) - ((layoutWidth * SQUARE_WIDTH) / 2) + (SQUARE_WIDTH / 2)) / SQUARE_WIDTH);
               zIndex = Math.floor((intersection.z + ((BOARD_HEIGHT_IN_SQUARES * SQUARE_HEIGHT) / 2) - ((layoutHeight * SQUARE_HEIGHT) / 2) + (SQUARE_HEIGHT / 2)) / SQUARE_HEIGHT);
 
-              // TODO: Remove hintBlock from this section and instead put it in another function to call in animate
-              // Reason is so that we can update the hint when someone else is moving their block...
-              scene.remove(hintBlock);
-
-              // reset previous hover
-              // for (i = 0, il = board.length; i < il; i++) {
-              //   for (j = 0, jl = board[i].length; j < jl; j++) {
-              //     if (board[i][j].previousColor) {
-              //       board[i][j].material.color = board[i][j].previousColor;
-              //       board[i][j].previousColor = null;
-              //     }
-              //   }
-              // }
-              // if (boardSquareMeshHovered) {
-              //   boardSquareMeshHovered.material.color = boardSquareMeshHovered.previousColor;
-              // }
-
               if (
+                // the board square exists
                 board[xIndex] &&
-                board[xIndex][zIndex]
+                board[xIndex][zIndex] &&
+                // we have a current color playing
+                $rootScope.state.game.currentColor &&
+                // the selectedBlock's color is the same as currentColor
+                selectedBlock.userData.color === $rootScope.state.game.currentColor &&
+                // the colorAgent exists
+                $rootScope.state.colors[$rootScope.state.game.currentColor] &&
+                $rootScope.state.colors[$rootScope.state.game.currentColor].id &&
+                // I am the one that is supposed to be playing right now
+                $rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id
               ) {
                 boardSquareMeshHovered = board[xIndex][zIndex];
-
-                // for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
-                //   for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
-                //     if (
-                //       board[xIndex + i] &&
-                //       board[xIndex + i][zIndex + j] &&
-                //       selectedBlock.userData.layout[i][j]
-                //     ) {
-                //       board[xIndex + i][zIndex + j].previousColor = board[xIndex + i][zIndex + j].material.color;
-                //       board[xIndex + i][zIndex + j].material.color = new THREE.Color(0xff0000);
-                //     }
-                //   }
-                // }
-                // boardSquareMeshHovered.previousColor = boardSquareMeshHovered.material.color;
-                // boardSquareMeshHovered.material.color = new THREE.Color(0xff0000);
 
                 // show the hint
                 if (canDrop(selectedBlock, xIndex, zIndex)) {
@@ -2562,7 +2576,14 @@ define('app', [
 
               // don't show move mouse thing if already placed
               // 
-              if (intersected.userData.isPlaced) {
+              if (
+                intersected.userData.isPlaced ||
+                (
+                  $rootScope.state.colors[intersected.userData.color] &&
+                  $rootScope.state.colors[intersected.userData.color].id &&
+                  $rootScope.state.colors[intersected.userData.color].id !== $rootScope.me.person.id
+                )
+              ) {
                 container.style.cursor = 'auto';
               } else {
                 container.style.cursor = 'move';
@@ -2605,7 +2626,14 @@ define('app', [
             // a) it isn't your blocks or 
             // b) it isn't your turn to move the shared one or
 
-            if (selectedBlock.userData.isPlaced) {
+            if (
+              selectedBlock.userData.isPlaced ||
+              (
+                $rootScope.state.colors[selectedBlock.userData.color] &&
+                $rootScope.state.colors[selectedBlock.userData.color].id &&
+                $rootScope.state.colors[selectedBlock.userData.color].id !== $rootScope.me.person.id
+              )
+            ) {
               selectedBlock = null;
               selectedSquare = null;
               return;
@@ -2638,9 +2666,19 @@ define('app', [
           ) {
             blockReference = selectedBlock;
 
-            if (  
+            if (
               xIndex !== undefined && xIndex !== null &&
               zIndex !== undefined && zIndex !== null &&
+              // we have a current color playing
+              $rootScope.state.game.currentColor &&
+              // the selectedBlock's color is the same as currentColor
+              selectedBlock.userData.color === $rootScope.state.game.currentColor &&
+              // the colorAgent exists
+              $rootScope.state.colors[$rootScope.state.game.currentColor] &&
+              $rootScope.state.colors[$rootScope.state.game.currentColor].id &&
+              // I am the one that is supposed to be playing right now
+              $rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id &&
+              // the block is valid in that position
               canDrop(selectedBlock, xIndex, zIndex)
             ) {
 
@@ -2938,24 +2976,18 @@ define('app', [
 
           // change whose turn it is
           if (currentColor === 'blue') {
-            currentColor = 'green';
-            $rootScope.state.game.currentColor = currentColor;
-            colorAgent = $rootScope.state.colors[currentColor];
-          } else if (currentColor === 'green') {
-            currentColor = 'red';
-            $rootScope.state.game.currentColor = currentColor;
-            colorAgent = $rootScope.state.colors[currentColor];
-          } else if (currentColor === 'red') {
-            currentColor = 'yellow';
-            $rootScope.state.game.currentColor = currentColor;
-            colorAgent = $rootScope.state.colors[currentColor];
+            $rootScope.state.game.currentColor = 'yellow';
           } else if (currentColor === 'yellow') {
-            currentColor = 'blue';
-            $rootScope.state.game.currentColor = currentColor;
-            colorAgent = $rootScope.state.colors[currentColor];
+            $rootScope.state.game.currentColor = 'red';
+          } else if (currentColor === 'red') {
+            $rootScope.state.game.currentColor = 'green';
+          } else if (currentColor === 'green') {
+            $rootScope.state.game.currentColor = 'blue';
           }
 
-          // if the type is 
+          colorAgent = $rootScope.state.colors[currentColor];
+
+          // if the type is a 3 person shared type
           if (colorAgent.type === 2) {
 
             // if we are at the end, start at the beginning
@@ -2970,11 +3002,111 @@ define('app', [
           }
         };
 
+        $rootScope.canTakeTurn = function (color) {
+          var
+            i, il,
+            x, xl,
+            z, zl,
+            r, rl,
+            block,
+            newBlock,
+            canTakeTurn = false;
+          
+          for (i = 0, il = blocks.length; i < il; i++) {
+            block = blocks[i];
 
+            // make sure that we are only testing the blocks that have been placed
+            // or that are the color passed
+            if (
+              block.userData.color !== color ||
+              block.userData.isPlaced
+            ) {
+              continue;
+            }
 
-        $rootScope.canTakeTurn = function () {
-          // TODO: determine if I can take a turn
-          return true;
+            // create a new block
+            newBlock = {
+              userData: {
+                layout: parse(serialize(block.userData.layout)),
+                color: block.userData.color
+              }
+            };
+
+            // 4 rotations
+            for (r = 0, rl = 4; r < rl; r++) {
+              newBlock.userData.layout = rotateClockwise(newBlock.userData.layout);
+
+              for (x = 0, xl = BOARD_WIDTH_IN_SQUARES; x < xl; x++) {
+                for (z = 0, zl = BOARD_HEIGHT_IN_SQUARES; z < zl; z++) {
+                  canTakeTurn = canTakeTurn || canDrop(newBlock, x, z);
+
+                  if (canTakeTurn) {
+                    break;
+                  }
+                }
+
+                if (canTakeTurn) {
+                  break;
+                }
+              }
+
+              if (canTakeTurn) {
+                break;
+              }
+            }
+
+            if (canTakeTurn) {
+              break;
+            }
+
+            // flip 
+            newBlock.userData.layout = rotateClockwise(newBlock.userData.layout);
+
+            // another 4 rotations
+            for (r = 0, rl = 4; r < rl; r++) {
+              newBlock.userData.layout = rotateClockwise(newBlock.userData.layout);
+
+              for (x = 0, xl = BOARD_WIDTH_IN_SQUARES; x < xl; x++) {
+                for (z = 0, zl = BOARD_HEIGHT_IN_SQUARES; z < zl; z++) {
+                  canTakeTurn = canTakeTurn || canDrop(newBlock, x, z);
+
+                  if (canTakeTurn) {
+                    break;
+                  }
+                }
+
+                if (canTakeTurn) {
+                  break;
+                }
+              }
+
+              if (canTakeTurn) {
+                break;
+              }
+            }
+
+            if (canTakeTurn) {
+              break;
+            }
+          }
+
+          return canTakeTurn;
+        };
+
+        $rootScope.canAnyoneTakeTurn = function () {
+          var
+            color,
+            canAnyoneTakeTurn = false;
+
+          for (color in $rootScope.state.colors) {
+            canAnyoneTakeTurn = canAnyoneTakeTurn || $rootScope.canTakeTurn(color);
+
+            if (canAnyoneTakeTurn) {
+              break;
+            }
+          }
+
+          return canAnyoneTakeTurn;
         };
 
         //------------------------------------------------------------------
@@ -2997,7 +3129,10 @@ define('app', [
             !$rootScope.state || 
             !$rootScope.state.game || 
             !$rootScope.state.game.currentStage ||
-            $rootScope.state.game.currentStage !== STAGES.PLAY
+            (
+              $rootScope.state.game.currentStage !== STAGES.PLAY &&
+              $rootScope.state.game.currentStage !== STAGES.CONGRATULATIONS
+            )
           ) {
             return;
           }

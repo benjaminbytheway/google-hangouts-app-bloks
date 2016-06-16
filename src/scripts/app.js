@@ -124,7 +124,14 @@ define('app', [
             key,
             value,
             metadata,
-            state;
+            state,
+            generateSupressSubmitDeltaTimeoutFunction = function (key) {
+              return function () {
+                if (supressSubmitDelta[key]) {
+                  supressSubmitDelta[key] = false;
+                }
+              };
+            };
           
           state = parseState(e.state);
 
@@ -136,34 +143,34 @@ define('app', [
           // }
 
           // make sure we don't call the submitDelta
-          supressSubmitDelta = {
-            game: true,
-            players: true,
-            host: true,
-            colors: true,
-            board: true,
-            blocksBlue: true,
-            blocksGreen: true,
-            blocksRed: true,
-            blocksYellow: true
-          };
+          // supressSubmitDelta = {
+          //   game: true,
+          //   players: true,
+          //   host: true,
+          //   colors: true,
+          //   board: true,
+          //   blocksBlue: true,
+          //   blocksGreen: true,
+          //   blocksRed: true,
+          //   blocksYellow: true
+          // };
 
           // turn this off as soon as you can in case the watcher doesn't trigger
-          setTimeout(function () {
-            if (supressSubmitDelta) {
-              supressSubmitDelta = {
-                game: false,
-                players: false,
-                host: false,
-                colors: false,
-                board: false,
-                blocksBlue: false,
-                blocksGreen: false,
-                blocksRed: false,
-                blocksYellow: false
-              };
-            }
-          }, 0); 
+          // setTimeout(function () {
+          //   if (supressSubmitDelta) {
+          //     supressSubmitDelta = {
+          //       game: false,
+          //       players: false,
+          //       host: false,
+          //       colors: false,
+          //       board: false,
+          //       blocksBlue: false,
+          //       blocksGreen: false,
+          //       blocksRed: false,
+          //       blocksYellow: false
+          //     };
+          //   }
+          // }, 0);
 
           // when resetting state to {}
           if (serialize(state) === '{}') {
@@ -177,7 +184,7 @@ define('app', [
             metadata = e.metadata[key];
 
             // if I was the one that wrote this, then ignore the update
-            // and only set the metadata
+            // and only update the metadata
             if (metadata.lastWriter === $rootScope.me.id) {
               $rootScope.metadata[key] = metadata;
               continue;
@@ -191,6 +198,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -202,6 +211,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -213,6 +224,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -224,6 +237,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
               }
@@ -235,6 +250,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -249,6 +266,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -263,6 +282,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -277,6 +298,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -291,6 +314,8 @@ define('app', [
                 // nothing
               } else {
                 // console.log(key + ' changed to ' + JSON.stringify(value));
+                supressSubmitDelta[key] = true;
+                setTimeout(generateSupressSubmitDeltaTimeoutFunction(key), 0);
                 $rootScope.metadata[key] = metadata;
                 $rootScope.state[key] = value;
 
@@ -343,43 +368,48 @@ define('app', [
 
         $rootScope.$watch('state.game.currentColor', function (newValue, oldValue, scope) {
 
-          if (
-            $rootScope.state &&
-            $rootScope.state.game &&
-            $rootScope.state.game.currentColor &&
-            $rootScope.state.colors[$rootScope.state.game.currentColor] &&
-            $rootScope.state.colors[$rootScope.state.game.currentColor].id
-          ) {
+          // make sure this doesn't get called before state.game $watch
+          setTimeout(function () {
+            if (
+              $rootScope.state &&
+              $rootScope.state.game &&
+              $rootScope.state.game.currentColor &&
+              $rootScope.state.colors[$rootScope.state.game.currentColor] &&
+              $rootScope.state.colors[$rootScope.state.game.currentColor].id
+            ) {
 
-            // if it is me, check to see if I can still take a turn
-            if ($rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id) {
-              if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
-                gapi.hangout.layout.displayNotice('It is your turn!');
-              } else {
-                gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
-                $rootScope.nextColor();
+              // if it is me, check to see if I can still take a turn
+              if ($rootScope.me.person.id === $rootScope.state.colors[$rootScope.state.game.currentColor].id) {
+                if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
+                  gapi.hangout.layout.displayNotice('It is your turn!');
+                } else {
+                  gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
+                  $rootScope.nextColor();
+                }
+              }
+
+              // if it is the host only, check to see if the game is done
+              if (
+                $rootScope.me.person.id === $rootScope.state.host.id &&
+                !$rootScope.canAnyoneTakeTurn()
+              ) {
+                $rootScope.state.game.currentStage = STAGES.CONGRATULATIONS;
               }
             }
-
-            // if it is the host only, check to see if the game is done
-            if (
-              $rootScope.me.person.id === $rootScope.state.host.id &&
-              !$rootScope.canAnyoneTakeTurn()
-            ) {
-              $rootScope.state.game.currentStage = STAGES.CONGRATULATIONS;
-            }
-          }
+          }, 100);
 
         });
 
         $rootScope.$watch('state.game', function (newValue, oldValue, scope) {
-          // console.log('----------$watch--state.game----------');
+          console.log('----------$watch--state.game----------');
 
           if (supressSubmitDelta.game) {
-            // console.log('supressSubmitDelta');
+            console.log('supressSubmitDelta');
+            console.log(JSON.stringify($rootScope.state.game));
             supressSubmitDelta.game = false;
           } else {
-            // console.log('submitDelta');
+            console.log('submitDelta');
+            console.log(JSON.stringify($rootScope.state.game));
             if ($rootScope.state && $rootScope.state.game) {
               gapi.hangout.data.submitDelta({
                 game: serialize($rootScope.state.game)
@@ -2686,11 +2716,13 @@ define('app', [
 
               // update the board
               for (i = 0, il = selectedBlock.userData.layout.length; i < il; i++) {
+
                 for (j = 0, jl = selectedBlock.userData.layout[i].length; j < jl; j++) {
+
                   if (selectedBlock.userData.layout[i][j]) {
                     board[xIndex + i][zIndex + j].userData.block = selectedBlock;
 
-                    // updat the state.board
+                    // update the state.board
                     $rootScope.syncBoardSquare(
                       $rootScope.state.board[xIndex + i][zIndex + j], 
                       board[xIndex + i][zIndex + j], 
@@ -2865,7 +2897,7 @@ define('app', [
               });
 
             // right or d
-            } else if (e.keyCode === 39 || e.keyCode === 83) {
+            } else if (e.keyCode === 39 || e.keyCode === 68) {
 
               blockReference.isRotated = !blockReference.isRotated;
               blockReference.userData.layout = rotateCounterclockwise(blockReference.userData.layout);
@@ -2893,7 +2925,7 @@ define('app', [
               });
 
             // down or s
-            } else if (e.keyCode === 40 || e.keyCode === 68) {
+            } else if (e.keyCode === 40 || e.keyCode === 83) {
 
               if (blockReference.isRotated) {
                 blockReference.userData.layout = flipHorizontal(blockReference.userData.layout);

@@ -1912,9 +1912,21 @@ define('app', [
 
           // block
           if (fromState) {
-            boardSquare.userData.block = getBlockById(updateBoardSquare.b);
+
+            if (updateBoardSquare.b) {
+              boardSquare.userData.block = getBlockById(updateBoardSquare.b);
+            } else {
+              boardSquare.userData.block = null;
+            }
+
           } else {
-            boardSquare.b = updateBoardSquare.userData.block.userData.id;
+
+            if (updateBoardSquare.userData.block) {
+              boardSquare.b = updateBoardSquare.userData.block.userData.id;
+            } else {
+              boardSquare.b = null;
+            }
+            
           }
         };
 
@@ -2758,8 +2770,7 @@ define('app', [
                 .start();
 
               //blocks.splice(blocks.indexOf(selectedBlock), 1);
-              selectedBlock.userData.isPlaced = true;
-
+              
               selectedSquare = null;
               selectedBlock = null;
 
@@ -2970,15 +2981,46 @@ define('app', [
         $rootScope.droppedBlock = null;
 
         $rootScope.confirmDrop = function () {
+          var
+            blockReference;
+
+          blockReference = $rootScope.droppedBlock;
+          blockReference.userData.isPlaced = true;
+
           $rootScope.nextColor();
+          
+          $rootScope.droppedBlock = null;
         };
 
         $rootScope.cancelDrop = function () {
           var
+            i, il,
+            j, jl,
             originalPosition,
             blockReference;
 
           blockReference = $rootScope.droppedBlock;
+
+          console.log(xIndex);
+          console.log(zIndex);
+
+          // Roll back the board
+          for (i = 0, il = blockReference.userData.layout.length; i < il; i++) {
+
+            for (j = 0, jl = blockReference.userData.layout[i].length; j < jl; j++) {
+
+              if (blockReference.userData.layout[i][j]) {
+                board[xIndex + i][zIndex + j].userData.block = null;
+
+                // update the state.board
+                $rootScope.syncBoardSquare(
+                  $rootScope.state.board[xIndex + i][zIndex + j], 
+                  board[xIndex + i][zIndex + j], 
+                  false
+                );
+              }
+            }
+          }
 
           // move it back to original position and rotation
           originalPosition = blockReference.startPosition;
@@ -3173,6 +3215,7 @@ define('app', [
         }
 
         container.appendChild(renderer.domElement);
+        resize();
 
         animate();
 

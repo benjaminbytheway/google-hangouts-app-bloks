@@ -2769,6 +2769,9 @@ define('app', [
                 })
                 .start();
 
+              $rootScope.droppebBlockXIndex = xIndex;
+              $rootScope.droppebBlockZIndex = zIndex;
+
               //blocks.splice(blocks.indexOf(selectedBlock), 1);
               
               selectedSquare = null;
@@ -2997,12 +3000,13 @@ define('app', [
             i, il,
             j, jl,
             originalPosition,
-            blockReference;
+            blockReference,
+            xIndex,
+            zIndex;
 
           blockReference = $rootScope.droppedBlock;
-
-          console.log(xIndex);
-          console.log(zIndex);
+          xIndex = $rootScope.droppebBlockXIndex;
+          zIndex = $rootScope.droppebBlockZIndex;
 
           // Roll back the board
           for (i = 0, il = blockReference.userData.layout.length; i < il; i++) {
@@ -3036,6 +3040,8 @@ define('app', [
               dropTween = null;
               $rootScope.syncBlock($rootScope.getBlockById(blockReference.userData.id), blockReference, false);
               $rootScope.droppedBlock = null;
+              $rootScope.droppebBlockXIndex = null;
+              $rootScope.droppebBlockZIndex = null;
             })
             .start();
 

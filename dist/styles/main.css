@@ -4,6 +4,7 @@ html, body {
   margin: 0;
   overflow: hidden;
   background-color: #fff;
+  font-family: Helvetica, Arial, sans-serif;
 }
 
 /* Stage 1 - Lobby */
@@ -43,6 +44,16 @@ html, body {
 
   table-layout: fixed;
   border-collapse: collapse;
+
+  margin: 20px 0;
+}
+
+#title {
+  font-size: 200%;
+}
+
+.button-container {
+  margin: 10px 0;
 }
 
 .player-container {

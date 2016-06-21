@@ -383,8 +383,9 @@ define('app', [
                 if ($rootScope.canTakeTurn($rootScope.state.game.currentColor)) {
                   gapi.hangout.layout.displayNotice('It is your turn!');
                 } else {
-                  gapi.hangout.layout.displayNotice('Sorry, you don\'t have any more moves left.');
+                  gapi.hangout.layout.displayNotice('Sorry, ' + $rootScope.state.game.currentColor + ' does not have any more moves left.');
                   $rootScope.nextColor();
+                  $rootScope.$apply();
                 }
               }
 
@@ -396,7 +397,7 @@ define('app', [
                 $rootScope.state.game.currentStage = STAGES.CONGRATULATIONS;
               }
             }
-          }, 100);
+          }, 200);
 
         });
 

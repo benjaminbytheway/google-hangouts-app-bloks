@@ -22,7 +22,7 @@
 
         <section id="stage-1-join-container">
 
-          <h1>Bloks</h1>
+          <h1 id="title">Bloks</h1>
 
           <div ng-show="state.players.length > 1">
             <span>{{state.players.length}} Player Game</span>
@@ -93,12 +93,18 @@
             </tbody>
             <tfoot></tfoot>
           </table>
-
-          <button id="buttonJoin" ng-click="join();" ng-show="!findPlayerById(me.person.id);">Join the game!</button>
-
-          <button id="buttonLeave" ng-click="$root.showLeaveModal = true;" ng-show="findPlayerById(me.person.id);">Leave the game</button>
-
-          <button id="buttonStart" ng-click="begin();" ng-show="me.person.id === state.host.id && state.players.length > 1">Begin {{state.players.length}} Player Game!</button>
+  
+          <div class="button-container" ng-show="!findPlayerById(me.person.id);">
+            <button id="buttonJoin" ng-click="join();">Join the game!</button>
+          </div>
+          
+          <div class="button-container" ng-show="findPlayerById(me.person.id);">
+            <button id="buttonLeave" ng-click="$root.showLeaveModal = true;">Leave the game</button>
+          </div>
+          
+          <div class="button-container" ng-show="me.person.id === state.host.id && state.players.length > 1">
+            <button id="buttonStart" ng-click="begin();">Begin {{state.players.length}} Player Game!</button>
+          </div>
 
         </section>
 
@@ -128,26 +134,28 @@
             <thead></thead>
             <tbody>
               <tr>
-                <td>
+                <td style="box-shadow: inset -15px -15px 40px -15px blue">
                   <button ng-click="chooseColor('blue');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.blue.id;">Blue</button>
                 </td>
-                <td>
+                <td style="box-shadow: inset 15px -15px 40px -15px red">
                   <button ng-click="chooseColor('red');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.red.id;">Red</button>
                 </td>
               </tr>
               <tr>
-                <td>
+                <td style="box-shadow: inset -15px 15px 40px -15px green">
                   <button ng-click="chooseColor('green');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.green.id;">Green</button>
                 </td>
-                <td>
+                <td style="box-shadow: inset 15px 15px 40px -15px yellow">
                   <button ng-click="chooseColor('yellow');" ng-disabled="!isPlayer() || !myRemainingColors() || state.colors.yellow.id;">Yellow</button>
                 </td>
               </tr>
             </tbody>
             <tfoot></tfoot>
           </table>
-
-          <button id="buttonStart" ng-click="start();" ng-show="me.person.id === state.host.id && state.players.length > 1 && displayChoosenColors().length === 4">Start {{state.players.length}} Player Game!</button>
+          
+          <div class="button-container">
+            <button id="buttonStart" ng-click="start();" ng-show="me.person.id === state.host.id && state.players.length > 1 && displayChoosenColors().length === 4">Start {{state.players.length}} Player Game!</button>
+          </div>
 
         </section>
 
